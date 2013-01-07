@@ -4,7 +4,7 @@
 #ifndef __DEFS_H__
 #define __DEFS_H__
 
-typedef _trace trace;
+typedef struct _trace trace;
 
 struct _trace {
   long pid;
