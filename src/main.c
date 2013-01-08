@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "defs.h"
 
@@ -16,6 +17,9 @@ int main(int argc, char* argv[]) {
   char* line;
   int l_pos = 0;
   int cur_max = LINE_MAX;
+
+  /** open syslog **/
+  openlog("trace_hitter", LOG_CONS|LOG_ODELAY|LOG_PID, LOG_USER);
 
   if (argc < 2) {
     fprintf(stderr, "Usage: %s TRACE_FILE\n", argv[0]);
@@ -40,14 +44,50 @@ int main(int argc, char* argv[]) {
       // at read bit
       // close : free the trace struct and closing read bit file
       // dup, dup2 : TODO(Julie)
-      if (strstr(line, "open") != NULL) {
+      
+      /** check unfinished or resumed **/
+      if (strstr(line, "unfinished") != NULL) {
+      } else if (strstr(line, "resumed") != NULL) {
+      } else if (strstr(line, "open") != NULL) {
+        syslog(LOG_DEBUG, "enter open parser");
         trace *new_fd = (trace *) malloc(sizeof(trace));
         char* pch = strtok(line, " ");
         if (pch != NULL) {
           new_fd->pid = atol(pch);
+          syslog(LOG_DEBUG, "set pid:%ld", new_fd->pid);
+        } else {
+          fprintf(stderr, "Cannot parse trace log:%s\n", pch);
+          exit(EXIT_FAILURE);
         }
 
         pch = strtok(NULL, " ");
+        syslog(LOG_DEBUG, "get fname from:%s", pch);
+        if (pch != NULL) {
+          int len = strlen(pch);
+          char* tmp = (char*) malloc(sizeof(char) * len);
+          memcpy(tmp, pch, sizeof(char) * len);
+          /** prevent from losing rval **/
+          pch = strtok(NULL, "=");
+          pch = strtok(NULL, "=");
+
+          char* fpath = strtok(tmp, "\"");
+          fpath = strtok(NULL, "\"");
+          if (fpath != NULL) {
+            new_fd->fname = fpath;
+            syslog(LOG_DEBUG, "set fname:%s", new_fd->fname);
+            free(tmp);
+          } else {
+            fprintf(stderr, "Cannot parse trace log:%s\n", fpath);
+            free(tmp);
+            exit(EXIT_FAILURE);
+          }
+        } else {
+            fprintf(stderr, "Cannot parse trace log:%s\n", pch);
+            exit(EXIT_FAILURE);
+        }
+
+        syslog(LOG_DEBUG, "current pos:%s", pch);
+        
         // TODO(Julie) parse again for getting fname and fd
       } else if (strstr(line, "read") != NULL) {
       } else if (strstr(line, "close") != NULL) {
@@ -72,4 +112,6 @@ int main(int argc, char* argv[]) {
     l_pos++;
     ch = getc(tracef);
   }
+
+  closelog();
 }
