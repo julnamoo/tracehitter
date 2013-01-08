@@ -7,6 +7,7 @@
 typedef struct _trace trace;
 
 struct _trace {
+  int state; // 0:unfinished, 1:finished
   long pid;
   long fd;
   char* fname;
