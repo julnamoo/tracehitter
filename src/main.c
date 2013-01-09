@@ -32,6 +32,7 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Cannot open trace file %s\n", argv[1]);
     exit(1);
   }
+  trace_tree = (trace_node*) malloc(sizeof(trace_node));
   syslog(LOG_DEBUG, "Start parse %s", argv[1]);
 
   line = (char*) calloc(cur_max, sizeof(char));
@@ -52,9 +53,9 @@ int main(int argc, char* argv[]) {
       } else {
         trace *new_fd = (trace *) malloc(sizeof(trace));
         new_fd->state = 1;
+
         if (strstr(line, "open") != NULL) {
           syslog(LOG_DEBUG, "enter open parser");
-          trace *new_fd = (trace *) malloc(sizeof(trace));
           char* pch = strtok(line, " ");
           if (pch != NULL) {
             new_fd->pid = atol(pch);
@@ -97,6 +98,7 @@ int main(int argc, char* argv[]) {
           new_fd->rval = atol(pch);
           syslog(LOG_DEBUG, "set rval:%ld", new_fd->rval);
           
+          /** add to fd structure **/
         } else if (strstr(line, "read") != NULL) {
         } else if (strstr(line, "close") != NULL) {
         } else if (strstr(line, "lseek") != NULL) {
