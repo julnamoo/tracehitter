@@ -10,6 +10,15 @@
 
 #define LINE_MAX 1024
 
+int exist_proc_node(int pid) {
+  proc_node* ptr;
+  for (ptr = proc_list; ptr != NULL; ptr = ptr->next_proc_node) {
+    if (ptr->pid == pid)
+      return TRUE;
+  }
+  return FALSE;
+}
+
 int main(int argc, char* argv[]) {
 
   FILE* tracef;
@@ -32,7 +41,6 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Cannot open trace file %s\n", argv[1]);
     exit(1);
   }
-  trace_tree = (trace_node*) malloc(sizeof(trace_node));
   syslog(LOG_DEBUG, "Start parse %s", argv[1]);
 
   line = (char*) calloc(cur_max, sizeof(char));
