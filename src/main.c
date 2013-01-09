@@ -47,8 +47,13 @@ int main(int argc, char* argv[]) {
       
       /** check unfinished or resumed **/
       if (strstr(line, "unfinished") != NULL) {
+        continue;
       } else if (strstr(line, "resumed") != NULL) {
-      } else if (strstr(line, "open") != NULL) {
+        continue;
+      } 
+      trace *new_fd = (trace *) malloc(sizeof(trace));
+      new_fd->state = 1;
+      if (strstr(line, "open") != NULL) {
         syslog(LOG_DEBUG, "enter open parser");
         trace *new_fd = (trace *) malloc(sizeof(trace));
         char* pch = strtok(line, " ");
@@ -75,7 +80,6 @@ int main(int argc, char* argv[]) {
           if (fpath != NULL) {
             new_fd->fname = fpath;
             syslog(LOG_DEBUG, "set fname:%s", new_fd->fname);
-            free(tmp);
           } else {
             fprintf(stderr, "Cannot parse trace log:%s\n", fpath);
             free(tmp);
@@ -87,8 +91,9 @@ int main(int argc, char* argv[]) {
         }
 
         syslog(LOG_DEBUG, "current pos:%s", pch);
+        new_fd->fd = atol(pch);
+        syslog(LOG_DEBUG, "set fd:%ld", new_fd->fd);
         
-        // TODO(Julie) parse again for getting fname and fd
       } else if (strstr(line, "read") != NULL) {
       } else if (strstr(line, "close") != NULL) {
       } else if (strstr(line, "lseek") != NULL) {
