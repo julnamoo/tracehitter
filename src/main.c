@@ -32,6 +32,7 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Cannot open trace file %s\n", argv[1]);
     exit(1);
   }
+  syslog(LOG_DEBUG, "Start parse %s", argv[1]);
 
   line = (char*) calloc(cur_max, sizeof(char));
   ch = getc(tracef);
@@ -47,58 +48,61 @@ int main(int argc, char* argv[]) {
       
       /** check unfinished or resumed **/
       if (strstr(line, "unfinished") != NULL) {
-        continue;
       } else if (strstr(line, "resumed") != NULL) {
-        continue;
-      } 
-      trace *new_fd = (trace *) malloc(sizeof(trace));
-      new_fd->state = 1;
-      if (strstr(line, "open") != NULL) {
-        syslog(LOG_DEBUG, "enter open parser");
+      } else {
         trace *new_fd = (trace *) malloc(sizeof(trace));
-        char* pch = strtok(line, " ");
-        if (pch != NULL) {
-          new_fd->pid = atol(pch);
-          syslog(LOG_DEBUG, "set pid:%ld", new_fd->pid);
-        } else {
-          fprintf(stderr, "Cannot parse trace log:%s\n", pch);
-          exit(EXIT_FAILURE);
-        }
-
-        pch = strtok(NULL, " ");
-        syslog(LOG_DEBUG, "get fname from:%s", pch);
-        if (pch != NULL) {
-          int len = strlen(pch);
-          char* tmp = (char*) malloc(sizeof(char) * len);
-          memcpy(tmp, pch, sizeof(char) * len);
-          /** prevent from losing rval **/
-          pch = strtok(NULL, "=");
-          pch = strtok(NULL, "=");
-
-          char* fpath = strtok(tmp, "\"");
-          fpath = strtok(NULL, "\"");
-          if (fpath != NULL) {
-            new_fd->fname = fpath;
-            syslog(LOG_DEBUG, "set fname:%s", new_fd->fname);
+        new_fd->state = 1;
+        if (strstr(line, "open") != NULL) {
+          syslog(LOG_DEBUG, "enter open parser");
+          trace *new_fd = (trace *) malloc(sizeof(trace));
+          char* pch = strtok(line, " ");
+          if (pch != NULL) {
+            new_fd->pid = atol(pch);
+            syslog(LOG_DEBUG, "set pid:%ld", new_fd->pid);
           } else {
-            fprintf(stderr, "Cannot parse trace log:%s\n", fpath);
-            free(tmp);
-            exit(EXIT_FAILURE);
-          }
-        } else {
             fprintf(stderr, "Cannot parse trace log:%s\n", pch);
             exit(EXIT_FAILURE);
-        }
+          }
 
-        syslog(LOG_DEBUG, "current pos:%s", pch);
-        new_fd->fd = atol(pch);
-        syslog(LOG_DEBUG, "set fd:%ld", new_fd->fd);
-        
-      } else if (strstr(line, "read") != NULL) {
-      } else if (strstr(line, "close") != NULL) {
-      } else if (strstr(line, "lseek") != NULL) {
-      } else if (strstr(line, "dup") != NULL) {
-      } else if (strstr(line, "dup2") != NULL) {
+          pch = strtok(NULL, " ");
+          syslog(LOG_DEBUG, "get fname from:%s", pch);
+          if (pch != NULL) {
+            int len = strlen(pch);
+            char* tmp = (char*) malloc(sizeof(char) * len);
+            memcpy(tmp, pch, sizeof(char) * len);
+            /** prevent from losing rval **/
+            pch = strtok(NULL, "=");
+            pch = strtok(NULL, "=");
+
+            char* fpath = strtok(tmp, "\"");
+            fpath = strtok(NULL, "\"");
+            if (fpath != NULL) {
+              new_fd->fname = fpath;
+              syslog(LOG_DEBUG, "set fname:%s", new_fd->fname);
+            } else {
+              fprintf(stderr, "Cannot parse trace log:%s\n", fpath);
+              free(tmp);
+              free(new_fd);
+              exit(EXIT_FAILURE);
+            }
+          } else {
+              fprintf(stderr, "Cannot parse trace log:%s\n", pch);
+              free(new_fd);
+              exit(EXIT_FAILURE);
+          }
+
+          syslog(LOG_DEBUG, "current pos:%s", pch);
+          new_fd->fd = atol(pch);
+          syslog(LOG_DEBUG, "set fd:%ld", new_fd->fd);
+          new_fd->rval = atol(pch);
+          syslog(LOG_DEBUG, "set rval:%ld", new_fd->rval);
+          
+        } else if (strstr(line, "read") != NULL) {
+        } else if (strstr(line, "close") != NULL) {
+        } else if (strstr(line, "lseek") != NULL) {
+        } else if (strstr(line, "dup") != NULL) {
+        } else if (strstr(line, "dup2") != NULL) {
+        }
       }
       l_pos = 0;
       cur_max = LINE_MAX;
