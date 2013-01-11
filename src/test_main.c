@@ -35,6 +35,40 @@ void test_add_proc_node(void) {
   CU_ASSERT_PTR_NULL(proc_list->next_proc_node);
 }
 
+void test_add_trace_node(void) {
+  trace_node* new_node;
+  /* set up process list containing one proc_node */
+  /*
+  proc_node* test_node = (proc_node*) malloc(sizeof(proc_node));
+  test_node->pid = 3444;
+  test_node->next_proc_node = NULL;
+  test_node->trace_tree = (trace_node*) malloc(sizeof(trace_node));
+  test_node->trace_tree->fd = 34;
+  test_node->trace_tree->trace = (trace*) malloc(sizeof(trace));
+  test_node->trace_tree->trace->state = 1;
+  test_node->trace_tree->trace->pid = 3444;
+  test_node->trace_tree->trace->fd = 34;
+  test_node->trace_tree->trace->fname = "hello";
+  test_node->trace_tree->trace->rval = 0;
+  test_node->trace_tree->rchild = NULL;
+  test_node->trace_tree->lchild = NULL;
+  CU_ASSERT_EQUAL(add_proc_node(test_node->pid, test_node), 3444);*/
+
+  /* set up new trace_node */
+  new_node = (trace_node*) malloc(sizeof(trace_node));
+  new_node->fd = 100;
+  new_node->trace = (trace*) malloc(sizeof(trace));
+  new_node->trace->state = 1;
+  new_node->trace->pid = 3444;
+  new_node->trace->fd = 100;
+  new_node->trace->fname = "hello_My_fd_is_100";
+  new_node->trace->rval = 1;
+  new_node->rchild = NULL;
+  new_node->lchild = NULL;
+  CU_ASSERT_EQUAL(add_trace_node(new_node->trace->pid, new_node), 100);
+
+}
+
 int main() {
   CU_pSuite pSuite = NULL;
 
@@ -52,18 +86,21 @@ int main() {
   if ((NULL == CU_add_test(pSuite, "successful_exist_proc_node",
           test_exist_proc_node)) ||
       (NULL == CU_add_test(pSuite, "successful_add_proc_node",
-                           test_add_proc_node)))
+                           test_add_proc_node)) ||
+      (NULL == CU_add_test(pSuite, "successful_add_trace_node",
+                           test_add_trace_node)))
   {
     CU_cleanup_registry();
     return CU_get_error();
   }
 
   /* run all tests using the automated interface */
-  //CU_automated_run_tests();
+  CU_automated_run_tests();
   //CU_list_tests_to_file();
 
   /* run all tests usint the console interface */
-  CU_console_run_tests();
+  //CU_console_run_tests();
+  CU_list_tests_to_file();
 
   CU_cleanup_registry();
   return CU_get_error();
