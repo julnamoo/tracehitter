@@ -11,3 +11,13 @@ int exist_proc_node(int pid) {
   }
   return FALSE;
 }
+
+int add_proc_node(int pid, proc_node *new_node) {
+  proc_node* ptr  = proc_list;
+  while (ptr != NULL) {
+    ptr = ptr->next_proc_node;
+  }
+  ptr = new_node;
+  syslog(LOG_DEBUG, "add new process node to proc_node list. pid:%d", ptr->pid);
+  return ptr->pid;
+}

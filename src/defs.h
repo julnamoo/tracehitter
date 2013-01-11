@@ -8,6 +8,7 @@
 #define FALSE 0
 
 #include <stdlib.h>
+#include <syslog.h>
 
 typedef struct _trace trace;
 typedef struct _trace_node trace_node;
