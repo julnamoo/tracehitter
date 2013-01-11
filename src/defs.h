@@ -13,7 +13,8 @@ typedef struct _trace trace;
 typedef struct _trace_node trace_node;
 typedef struct _pid_node proc_node;
 
-proc_node* proc_list;
+proc_node* proc_list = NULL;
+proc_node* proc_ptr = NULL;
 
 struct _trace {
   int state; // 0:unfinished, 1:finished
@@ -49,9 +50,6 @@ proc_node* find_proc_node(int pid);
 // Attach new trace_node to trace_tree of pid.
 // Return fd of new_node
 int add_trace_node(int pid, trace_node *new_node);
-
-// Find insert position of new node
-trace_node* find_pos_trace_node(trace_node *trace_tree, trace_node *new_node);
 
 // Return existence of trace_node with fd
 int exist_trace_node(trace_node *trace_tree, int fd);
