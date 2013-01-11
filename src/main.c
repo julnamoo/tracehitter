@@ -1,5 +1,4 @@
-// (c) 2013 by Julie Kim. All rights reserved.
-// Julie Kim (kjulee114@gmail.com)
+// Copyright (c) 2013 by Julie Kim (kjulee114@gmail.com)
 
 #include <stdio.h>
 #include <stdlib.h>

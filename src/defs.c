@@ -1,5 +1,4 @@
-// Copyright (c) 2013 Julie Kim (julie114.kim@gmail.com)
-// Julie Kim (kjulee114@gmail.com)
+// Copyright (c) 2013 by Julie Kim (kjulee114@gmail.com)
 
 #include "defs.h"
 
