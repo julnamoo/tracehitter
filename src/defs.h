@@ -43,11 +43,20 @@ int add_proc_node(int pid, proc_node *new_node);
 // Return existence of proc_node with pid.
 int exist_proc_node(int pid);
 
+// Return ptr for proc_node of pid
+proc_node* find_proc_node(int pid);
+
 // Attach new trace_node to trace_tree of pid.
 // Return fd of new_node
 int add_trace_node(int pid, trace_node *new_node);
 
+// Find insert position of new node
+trace_node* find_pos_trace_node(trace_node *trace_tree, trace_node *new_node);
+
+// Return existence of trace_node with fd
+int exist_trace_node(trace_node *trace_tree, int fd);
+
 // Find trace_node from proc_list of pid with fd
-trace_node* find_trace_node(int pid, int fd);
+trace_node* find_trace_node(trace_node* trace_tree, int fd);
 
 #endif  //  __DEFS_H__
