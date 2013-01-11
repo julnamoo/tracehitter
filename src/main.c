@@ -1,4 +1,4 @@
-// (c) 2012 by Julie Kim. All rights reserved.
+// (c) 2013 by Julie Kim. All rights reserved.
 // Julie Kim (kjulee114@gmail.com)
 
 #include <stdio.h>
@@ -9,15 +9,6 @@
 #include "defs.h"
 
 #define LINE_MAX 1024
-
-int exist_proc_node(int pid) {
-  proc_node* ptr;
-  for (ptr = proc_list; ptr != NULL; ptr = ptr->next_proc_node) {
-    if (ptr->pid == pid)
-      return TRUE;
-  }
-  return FALSE;
-}
 
 int main(int argc, char* argv[]) {
 
@@ -106,7 +97,21 @@ int main(int argc, char* argv[]) {
           new_fd->rval = atol(pch);
           syslog(LOG_DEBUG, "set rval:%ld", new_fd->rval);
           
-          /** add to fd structure **/
+          /** add new_fd to proc_node **/
+          if (exist_proc_node(new_fd->pid) == TRUE ) {
+            syslog(LOG_DEBUG, "new process:%d", new_fd->pid);
+            proc_node new_proc = (proc_node*) malloc(sizeof(proc_node));
+            new_proc->pid = new_fd->pid;
+            new_proc->next_proc_node = NULL;
+            new_proc->trace_tree = (trace_node*) malloc(sizeof(trace_node));
+            new_proc->trace_tree->fd = new_fd->fd;
+            new_proc->trace_tree->trace = new_fd;
+            new_proc->trace_tree->rchild = NULL;
+            new_proc->trace_tree->lchild = NULL;
+            add_proc_node(new_proc);
+          } else {
+            //TODO(Julie) Find proc_node and allocate trace into trace_node
+          }
         } else if (strstr(line, "read") != NULL) {
         } else if (strstr(line, "close") != NULL) {
         } else if (strstr(line, "lseek") != NULL) {
