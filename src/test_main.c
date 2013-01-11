@@ -25,26 +25,23 @@ int main() {
   /* add a suite to the registry */
   pSuite = CU_add_suite("Suite_success", init_suite_success, clean_suite_success);
   if (NULL == pSuite) {
-  CU_cleanup_registry();
-  return CU_get_error();
+    CU_cleanup_registry();
+    return CU_get_error();
   }
   
   /* add the tests to the suite */
   if ((NULL == CU_add_test(pSuite, "successful_test_1", test_exist_proc_node)))
   {
-  CU_cleanup_registry();
-  return CU_get_error();
+    CU_cleanup_registry();
+    return CU_get_error();
   }
 
   /* run all tests using the automated interface */
-  CU_automated_run_tests();
-  CU_list_tests_to_file();
+  //CU_automated_run_tests();
+  //CU_list_tests_to_file();
 
   /* run all tests usint the console interface */
-//  CU_console_run_tests();
-
-  /* run all tests using the curses interface */
-  /* (only on system having curses) */
+  CU_console_run_tests();
 
   CU_cleanup_registry();
   return CU_get_error();
