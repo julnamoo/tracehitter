@@ -16,6 +16,25 @@ void test_exist_proc_node(void)
   CU_ASSERT_FALSE(exist_proc_node(1));
 }
 
+void test_add_proc_node(void) {
+  proc_node* test_node = (proc_node*) malloc(sizeof(proc_node));
+  test_node->pid = 3444;
+  test_node->next_proc_node = NULL;
+  test_node->trace_tree = (trace_node*) malloc(sizeof(trace_node));
+  test_node->trace_tree->fd = 34;
+  test_node->trace_tree->trace = (trace*) malloc(sizeof(trace));
+  test_node->trace_tree->trace->state = 1;
+  test_node->trace_tree->trace->pid = 3444;
+  test_node->trace_tree->trace->fd = 34;
+  test_node->trace_tree->trace->fname = "hello";
+  test_node->trace_tree->trace->rval = 0;
+  CU_ASSERT_EQUAL(add_proc_node(test_node->pid, test_node), 3444);
+  
+  CU_ASSERT_PTR_NOT_NULL(proc_list);
+  CU_ASSERT_PTR_EQUAL(proc_list, test_node);
+  CU_ASSERT_PTR_NULL(proc_list->next_proc_node);
+}
+
 int main() {
   CU_pSuite pSuite = NULL;
 
@@ -30,7 +49,10 @@ int main() {
   }
   
   /* add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "successful_test_1", test_exist_proc_node)))
+  if ((NULL == CU_add_test(pSuite, "successful_exist_proc_node",
+          test_exist_proc_node)) ||
+      (NULL == CU_add_test(pSuite, "successful_add_proc_node",
+                           test_add_proc_node)))
   {
     CU_cleanup_registry();
     return CU_get_error();
