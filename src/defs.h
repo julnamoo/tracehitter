@@ -1,4 +1,4 @@
-// (c) 2012 by Julie Kim. All rights reserved.
+// (c) 2013 by Julie Kim. All rights reserved.
 // Julie Kim (kjulee114@gmail.com)
 
 #ifndef __DEFS_H__
@@ -6,6 +6,8 @@
 
 #define TRUE 1
 #define FALSE 0
+
+#include <stdlib.h>
 
 typedef struct _trace trace;
 typedef struct _trace_node trace_node;
