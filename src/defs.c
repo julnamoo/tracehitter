@@ -39,12 +39,15 @@ int add_proc_node(int pid, proc_node *new_node) {
 }
 
 proc_node* find_proc_node(int pid) {
+  syslog(LOG_DEBUG, "enter find_proc_node with %d", pid);
   proc_node* ptr = proc_list;
 
   for (; ptr != NULL; ptr = ptr->next_proc_node) {
     if (ptr->pid == pid)
       return ptr;
   }
+  syslog(LOG_DEBUG, "Cannot find proc_node(%d) from list (@find_proc_node)",
+      pid);
   return NULL;
 }
 
