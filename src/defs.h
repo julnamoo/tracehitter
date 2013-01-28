@@ -48,7 +48,7 @@ int exist_proc_node(int pid);
 proc_node* find_proc_node(int pid);
 
 // Remove proc_node from global proc_list and return removed pid
-int remove_proc_node(int pid);
+int remove_proc_node(long int pid);
 
 // Attach new trace_node to trace_tree of pid.
 // Return fd of new_node
@@ -61,6 +61,6 @@ int exist_trace_node(trace_node *trace_tree, int fd);
 trace_node* find_trace_node(trace_node* trace_tree, int fd);
 
 // Remove trace_node from trace_tree in proc_node and return pid
-int remove_trace_node(int pid, trace_node* trace_node);
+int remove_trace_node(long int pid, long int fd);
 
 #endif  //  __DEFS_H__
