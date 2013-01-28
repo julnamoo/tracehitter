@@ -126,3 +126,18 @@ int add_trace_node(int pid, trace_node *new_node) {
   print_trace_tree(p_ptr->trace_tree);
   return tmp_ptr->fd;
 }
+
+trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
+  //TODO(Julie)
+}
+
+int remove_trace_node(long int pid, long int fd) {
+  syslog(LOG_DEBUG, "enter remove_trace_node with pid %ld, fd %ld", pid, fd);
+  proc_node* cur_proc = find_proc_node(pid);
+  trace_node* p_trace = find_parent_trace_node(cur_proc->trace_tree, fd);
+  /* check the rchild and lchild of cur_trace.
+   * If it is not leaf node, reorder the tree */
+  int f_side = p_trace->rchild->fd == fd ? 1 : 0; // 1:rchild, 0:lchild
+  trace_node* cur_trace =  f_side ? p_trace->rchild : p_trace->lchild;
+  //TODO(Julie) Reorder trace_tree
+}
