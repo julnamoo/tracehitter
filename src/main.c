@@ -113,12 +113,22 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "exist process:%ld", new_fd->pid);
             proc_node *cur_proc = find_proc_node(new_fd->pid);
             syslog(LOG_DEBUG, "success to find proc_node:%d", cur_proc->pid);
-            //TODO(Julie) Allocate new trace into trace_node:
-            // Find appropriate position from trace_tree and insert new
-            // trace_node
+            trace_node *new_trace = (trace_node*) malloc(sizeof(trace_node));
+            new_trace->fd = new_fd->fd;
+            new_trace->trace = new_fd;
+            new_trace->rchild = NULL;
+            new_trace->lchild = NULL;
+            add_trace_node(new_fd->pid, new_trace);
+            syslog(LOG_DEBUG,
+                "complete to add new trace node into pid %ld, fd %ld",
+                new_fd->pid, new_fd->fd);
           }
         } else if (strstr(line, "read") != NULL) {
         } else if (strstr(line, "close") != NULL) {
+          //TODO(Julie) Find trace_node from proc_node and remove the trace_node
+          //from trace_tree in proc_node. If the node is the last, then remove
+          //proc_node from proc_list like before.
+
         } else if (strstr(line, "lseek") != NULL) {
         } else if (strstr(line, "dup") != NULL) {
         } else if (strstr(line, "dup2") != NULL) {
