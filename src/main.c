@@ -64,6 +64,7 @@ int main(int argc, char* argv[]) {
           }
 
           pch = strtok(NULL, " ");
+          pch = strtok(NULL, " ");
           syslog(LOG_DEBUG, "get fname from:%s", pch);
           if (pch != NULL) {
             int len = strlen(pch);
@@ -90,16 +91,16 @@ int main(int argc, char* argv[]) {
               exit(EXIT_FAILURE);
           }
 
-          syslog(LOG_DEBUG, "current pos:%s", pch);
+          syslog(LOG_DEBUG, "current parser pos:%s", pch);
           new_fd->fd = atol(pch);
           syslog(LOG_DEBUG, "set fd:%ld", new_fd->fd);
           new_fd->rval = atol(pch);
           syslog(LOG_DEBUG, "set rval:%ld", new_fd->rval);
           
           /** add new_fd to proc_node **/
-          if (exist_proc_node(new_fd->pid) == TRUE ) {
-            syslog(LOG_DEBUG, "new process:%d", new_fd->pid);
-            proc_node new_proc = (proc_node*) malloc(sizeof(proc_node));
+          if (exist_proc_node(new_fd->pid) == FALSE) {
+            syslog(LOG_DEBUG, "new process:%ld", new_fd->pid);
+            proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
             new_proc->pid = new_fd->pid;
             new_proc->next_proc_node = NULL;
             new_proc->trace_tree = (trace_node*) malloc(sizeof(trace_node));
@@ -107,7 +108,7 @@ int main(int argc, char* argv[]) {
             new_proc->trace_tree->trace = new_fd;
             new_proc->trace_tree->rchild = NULL;
             new_proc->trace_tree->lchild = NULL;
-            add_proc_node(new_proc);
+            add_proc_node(new_proc->pid, new_proc);
           } else {
             //TODO(Julie) Find proc_node and allocate trace into trace_node
           }
@@ -137,4 +138,5 @@ int main(int argc, char* argv[]) {
   }
 
   closelog();
+  exit(EXIT_SUCCESS);
 }
