@@ -110,7 +110,12 @@ int main(int argc, char* argv[]) {
             new_proc->trace_tree->lchild = NULL;
             add_proc_node(new_proc->pid, new_proc);
           } else {
-            //TODO(Julie) Find proc_node and allocate trace into trace_node
+            syslog(LOG_DEBUG, "exist process:%ld", new_fd->pid);
+            proc_node *cur_proc = find_proc_node(new_fd->pid);
+            syslog(LOG_DEBUG, "success to find proc_node:%d", cur_proc->pid);
+            //TODO(Julie) Allocate new trace into trace_node:
+            // Find appropriate position from trace_tree and insert new
+            // trace_node
           }
         } else if (strstr(line, "read") != NULL) {
         } else if (strstr(line, "close") != NULL) {
