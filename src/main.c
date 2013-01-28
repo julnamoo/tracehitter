@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
             new_fd->pid = atol(pch);
             syslog(LOG_DEBUG, "set pid:%ld", new_fd->pid);
           } else {
-            fprintf(stderr, "Cannot parse trace log:%s\n", pch);
+            fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
             exit(EXIT_FAILURE);
           }
 
@@ -80,13 +80,13 @@ int main(int argc, char* argv[]) {
               new_fd->fname = fpath;
               syslog(LOG_DEBUG, "set fname:%s", new_fd->fname);
             } else {
-              fprintf(stderr, "Cannot parse trace log:%s\n", fpath);
+              fprintf(stderr, "Cannot parse trace log(@open, fname1):%s\n", fpath);
               free(tmp);
               free(new_fd);
               exit(EXIT_FAILURE);
             }
           } else {
-              fprintf(stderr, "Cannot parse trace log:%s\n", pch);
+              fprintf(stderr, "Cannot parse trace log(@open, fname2):%s\n", pch);
               free(new_fd);
               exit(EXIT_FAILURE);
           }
@@ -128,7 +128,42 @@ int main(int argc, char* argv[]) {
           //TODO(Julie) Find trace_node from proc_node and remove the trace_node
           //from trace_tree in proc_node. If the node is the last, then remove
           //proc_node from proc_list like before.
+          syslog(LOG_DEBUG, "enter close parser");
+          char* pch = strtok(line, " ");
+          if (pch != NULL) {
+            new_fd->pid = atol(pch);
+            syslog(LOG_DEBUG, "set pid %ld to new_fd to close", new_fd->pid);
+          } else {
+            fprintf(stderr, "Cannot parse trace log(@close, pid):%s", pch);
+            exit(EXIT_FAILURE);
+          }
 
+          pch = strtok(NULL, " ");
+          pch = strtok(NULL, " ");
+          syslog(LOG_DEBUG, "current parser pos %s", pch);
+          if (pch != NULL) {
+            int len = strlen(pch);
+            char* fd_tok = (char*) malloc(sizeof(char) * len);
+            memcpy(fd_tok, pch, sizeof(char) * len);
+            /** set rval and fd **/
+            pch = strtok(NULL, "=");
+            pch = strtok(NULL, "=");
+            new_fd->rval = atol(pch);
+            syslog(LOG_DEBUG, "set rval for closing:%ld", new_fd->rval);
+            fd_tok = strtok(fd_tok, "()");
+            fd_tok = strtok(NULL, "()");
+            new_fd->fd = atol(fd_tok);
+            syslog(LOG_DEBUG, "set fd for closing:%ld", new_fd->fd);
+          } else {
+            fprintf(stderr, "Cannot parse trace log(@close, fd):%s", pch);
+            exit(EXIT_FAILURE);
+          }
+
+          /** remove trace_node **/
+          if(remove_trace_node(new_fd->pid, new_fd-fd) != new_fd->pid) {
+            fprintf(stderr, "Fail to remove trace_node at %ld(pid)", new_fd->pid);
+            exit(EXIT_FAILURE);
+          }
         } else if (strstr(line, "lseek") != NULL) {
         } else if (strstr(line, "dup") != NULL) {
         } else if (strstr(line, "dup2") != NULL) {
