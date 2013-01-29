@@ -160,8 +160,9 @@ int main(int argc, char* argv[]) {
           }
 
           /** remove trace_node **/
-          if(remove_trace_node(new_fd->pid, new_fd-fd) != new_fd->pid) {
-            fprintf(stderr, "Fail to remove trace_node at %ld(pid)", new_fd->pid);
+          if(remove_trace_node(new_fd->pid, new_fd->fd) != new_fd->pid) {
+            fprintf(stderr, "Fail to remove trace_node at %ld(pid)",
+                new_fd->pid);
             exit(EXIT_FAILURE);
           }
         } else if (strstr(line, "lseek") != NULL) {
