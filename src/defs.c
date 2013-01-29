@@ -170,5 +170,10 @@ int remove_trace_node(long int pid, long int fd) {
         cur_trace->trace->pid, cur_trace->fd);
     free(cur_trace);
     return p_trace->trace->pid;
+  } else if (cur_trace->lchild != NULL) {
+    p_trace->lchild = cur_trace->lchild;
+    syslog(LOG_DEBUG, "Switch cur_trace with lchild of itself");
+    return p_trace->trace->pid;
   }
+
 }
