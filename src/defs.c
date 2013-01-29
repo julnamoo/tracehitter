@@ -163,7 +163,8 @@ int remove_trace_node(long int pid, long int fd) {
   } else {
     syslog(LOG_DEBUG, "Removing trace_node is leaf...");
     free(cur_trace);
-    f_side ? p_trace->rchild = NULL : p_trace->lchild = NULL;
+    if (f_side) p_trace->rchild = NULL;
+    else p_trace->lchild = NULL;
     return p_trace->trace->pid;
   }
   if (f_side) {
