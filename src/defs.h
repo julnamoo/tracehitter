@@ -6,7 +6,11 @@
 #define TRUE 1
 #define FALSE 0
 
+#define RIGHT 1
+#define LEFT 0
+
 #include <stdlib.h>
+#include <stdio.h>
 #include <syslog.h>
 
 typedef struct _trace trace;
