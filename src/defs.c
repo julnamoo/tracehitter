@@ -129,6 +129,40 @@ int add_trace_node(int pid, trace_node *new_node) {
 
 trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
   //TODO(Julie)
+  trace_node* ptr = trace_tree;
+  while (ptr != NULL) {
+    if (ptr->fd == fd) {
+      syslog(LOG_DEBUG, "Parent of (pid %ld, fd %d) is itself",
+          trace_tree->trace->pid, trace_tree->fd);
+      return ptr;
+    } else if (ptr->fd > fd) {
+      if (ptr->lchild == NULL) {
+        fprintf(stderr, "Tree Fault:The %d is not in the tree", fd);
+        return NULL;
+      }
+      if (ptr->lchild->fd == fd) {
+        syslog(LOG_DEBUG, "Find the %d, parent fd is %d", fd, ptr->fd);
+        return ptr;
+      } else {
+        ptr = ptr->lchild;
+        syslog(LOG_DEBUG,
+            "Lchild of the parent is not matched. Move to lchild");
+      }
+    } else if (ptr->fd < fd) {
+      if (ptr->rchild == NULL) {
+        fprintf(stderr, "Tree Fault:The %d is not in the tree", fd);
+        return NULL;
+      }
+      if (ptr->rchild->fd == fd) {
+        syslog(LOG_DEBUG, "Find the %d, parent fd is %d", fd, ptr->fd);
+        return ptr;
+      } else {
+        ptr = ptr->rchild;
+        syslog(LOG_DEBUG,
+            "Rchild of the parent is not matched. Move to rchild");
+      }
+    }
+  }
 }
 
 int remove_trace_node(long int pid, long int fd) {
