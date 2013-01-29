@@ -140,12 +140,13 @@ int remove_trace_node(long int pid, long int fd) {
   int f_side = p_trace->rchild->fd == fd ? 1 : 0; // 1:rchild, 0:lchild
   trace_node* cur_trace =  f_side ? p_trace->rchild : p_trace->lchild;
   /* Reorder trace_tree from non-leaf to leaf */
+  trace_node* tmp_ptr = NULL;
   if (cur_trace->rchild != NULL) {
     trace_node* ptr = NULL;
     for (ptr = cur_trace->rchild;
         ptr->lchild != NULL && ptr->lchild->lchild != NULL;
         ptr = ptr->lchild) { }
-    trace_node* tmp_ptr = ptr->lchild;
+    tmp_ptr = ptr->lchild;
     if (ptr->lchild->rchild != NULL) {
       ptr->lchild = ptr->lchild->rchild;
       ptr->lchild->lchild = NULL;
@@ -155,25 +156,29 @@ int remove_trace_node(long int pid, long int fd) {
     tmp_ptr->lchild = cur_trace->lchild;
     syslog(LOG_DEBUG, "Target trace to change>>pid:%ld, fd:%d",
         tmp_ptr->trace->pid, tmp_ptr->fd);
-    if (f_side) {
-      p_trace->rchild = tmp_ptr;
-      syslog(LOG_DEBUG,
-          "Set the target into the current as rchild>>pid:%ld, fd:%d",
-          p_trace->rchild->trace->pid, p_trace->rchild->fd);
-    } else {
-      p_trace->lchild = tmp_ptr;
-      syslog(LOG_DEBUG,
-          "Set the target into the current as lchild>>pid:%ld, fd:%d",
-          p_trace->lchild->trace->pid, p_trace->lchild->fd);
-    }
-    syslog(LOG_DEBUG, "complete remove the trace(pid:%ld,fd:%d) and reorder",
-        cur_trace->trace->pid, cur_trace->fd);
-    free(cur_trace);
-    return p_trace->trace->pid;
   } else if (cur_trace->lchild != NULL) {
-    p_trace->lchild = cur_trace->lchild;
-    syslog(LOG_DEBUG, "Switch cur_trace with lchild of itself");
+    tmp_ptr = cur_trace->lchild;
+    syslog(LOG_DEBUG, "Target trace to change>>pid:%ld, fd:%d",
+        tmp_ptr->trace->pid, tmp_ptr->fd);
+  } else {
+    syslog(LOG_DEBUG, "Removing trace_node is leaf...");
+    free(cur_trace);
+    f_side ? p_trace->rchild = NULL : p_trace->lchild = NULL;
     return p_trace->trace->pid;
   }
-
+  if (f_side) {
+    p_trace->rchild = tmp_ptr;
+    syslog(LOG_DEBUG,
+        "Set the target into the current as rchild>>pid:%ld, fd:%d",
+        p_trace->rchild->trace->pid, p_trace->rchild->fd);
+  } else {
+    p_trace->lchild = tmp_ptr;
+    syslog(LOG_DEBUG,
+        "Set the target into the current as lchild>>pid:%ld, fd:%d",
+        p_trace->lchild->trace->pid, p_trace->lchild->fd);
+  }
+  syslog(LOG_DEBUG, "complete remove the trace(pid:%ld,fd:%d) and reorder",
+      cur_trace->trace->pid, cur_trace->fd);
+  free(cur_trace);
+  return p_trace->trace->pid;
 }
