@@ -16,7 +16,6 @@ void print_trace_tree(trace_node* trace_tree) {
     return;
   }
   trace *t_ptr = trace_tree->trace;
-  syslog(LOG_DEBUG, "print trace_node in recursively.");
   syslog(LOG_DEBUG, "pid %ld, fd %ld, fname %s, state %d, rval %ld",
       t_ptr->pid, t_ptr->fd, t_ptr->fname, t_ptr->state, t_ptr->rval);
   print_trace_tree(trace_tree->rchild);
@@ -98,13 +97,17 @@ int add_trace_node(int pid, trace_node *new_node) {
     syslog(LOG_DEBUG, "Is it really the first trace_node of %d(pid)?", pid);
     ttree_ptr->rchild = NULL;
     ttree_ptr->lchild = NULL;
+    syslog(LOG_DEBUG, "print trace tree");
     print_trace_tree(ttree_ptr);
     return ttree_ptr->fd;
   }
   trace_node* tmp_ptr = ttree_ptr;
+  trace_node* tmp_p_ptr = ttree_ptr;
+  int f_side = 0;
   if (exist_trace_node(ttree_ptr, new_node->fd) == TRUE) {
     syslog(LOG_DEBUG, "There is already trace_node with pid:%d and fd:%d.\
         Please check your trace logs.", pid, new_node->fd);
+    syslog(LOG_DEBUG, "print trace tree");
     print_trace_tree(ttree_ptr);
     return -1;
   }
@@ -112,8 +115,12 @@ int add_trace_node(int pid, trace_node *new_node) {
   syslog(LOG_DEBUG, "Start traversal from fd:%d", tmp_ptr->fd);
   while (tmp_ptr != NULL) {
     if (tmp_ptr->fd < new_node->fd) {
+      f_side = RIGHT;
+      tmp_p_ptr = tmp_ptr;
       tmp_ptr = tmp_ptr->rchild;
     } else {
+      f_side = LEFT;
+      tmp_p_ptr = tmp_ptr;
       tmp_ptr = tmp_ptr->lchild;
     }
     ++depth;
@@ -121,8 +128,14 @@ int add_trace_node(int pid, trace_node *new_node) {
   tmp_ptr = new_node;
   tmp_ptr->rchild = NULL;
   tmp_ptr->lchild = NULL;
+  if (f_side == RIGHT) {
+    tmp_p_ptr->rchild = tmp_ptr;
+  } else {
+    tmp_p_ptr->lchild = tmp_ptr;
+  }
   syslog(LOG_DEBUG, "new node fd:%d is located in %dth level",
       tmp_ptr->fd, depth);
+  syslog(LOG_DEBUG, "print trace tree");
   print_trace_tree(p_ptr->trace_tree);
   return tmp_ptr->fd;
 }
@@ -163,15 +176,22 @@ trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
       }
     }
   }
+  syslog(LOG_DEBUG, "Cannot find %d from trace_tree", fd);
+  return NULL;
 }
 
 int remove_trace_node(long int pid, long int fd) {
   syslog(LOG_DEBUG, "enter remove_trace_node with pid %ld, fd %ld", pid, fd);
   proc_node* cur_proc = find_proc_node(pid);
   trace_node* p_trace = find_parent_trace_node(cur_proc->trace_tree, fd);
+
+  /** case of the root **/
+  if (p_trace->fd == fd) {
+    //TODO(Julie)
+  }
   /* check the rchild and lchild of cur_trace.
    * If it is not leaf node, reorder the tree */
-  int f_side = p_trace->rchild->fd == fd ? 1 : 0; // 1:rchild, 0:lchild
+  int f_side = p_trace->rchild->fd == fd ? RIGHT : LEFT; // 1:rchild, 0:lchild
   trace_node* cur_trace =  f_side ? p_trace->rchild : p_trace->lchild;
   /* Reorder trace_tree from non-leaf to leaf */
   trace_node* tmp_ptr = NULL;
@@ -197,11 +217,13 @@ int remove_trace_node(long int pid, long int fd) {
   } else {
     syslog(LOG_DEBUG, "Removing trace_node is leaf...");
     free(cur_trace);
-    if (f_side) p_trace->rchild = NULL;
+    if (f_side == RIGHT) p_trace->rchild = NULL;
     else p_trace->lchild = NULL;
+    syslog(LOG_DEBUG, "print trace tree");
+    print_trace_tree(cur_proc->trace_tree);
     return p_trace->trace->pid;
   }
-  if (f_side) {
+  if (f_side == RIGHT) {
     p_trace->rchild = tmp_ptr;
     syslog(LOG_DEBUG,
         "Set the target into the current as rchild>>pid:%ld, fd:%d",
@@ -215,5 +237,7 @@ int remove_trace_node(long int pid, long int fd) {
   syslog(LOG_DEBUG, "complete remove the trace(pid:%ld,fd:%d) and reorder",
       cur_trace->trace->pid, cur_trace->fd);
   free(cur_trace);
+  syslog(LOG_DEBUG, "print trace tree");
+  print_trace_tree(cur_proc->trace_tree);
   return p_trace->trace->pid;
 }
