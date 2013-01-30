@@ -171,8 +171,9 @@ int main(int argc, char* argv[]) {
             exit(EXIT_FAILURE);
           }
         } else if (strstr(line, "lseek") != NULL) {
-        } else if (strstr(line, "dup") != NULL) {
         } else if (strstr(line, "dup2") != NULL) {
+        } else if (strstr(line, "dup") != NULL) {
+        } else if (strstr(line, "fcntl") != NULL) {
         }
       }
       l_pos = 0;
