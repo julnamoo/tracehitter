@@ -203,13 +203,23 @@ int main(int argc, char* argv[]) {
             old = atol(dup2);
             syslog(LOG_DEBUG, "Extract fds from dup2>>old:%ld, new:%ld",
                 old, new);
-            //TODO(Julie) Find trace_node from with the pid. If the trace_node
-            // does not exist, find the trace_node from previous node whos pid
-            // is less then the current.
           } else {
             fprintf(stderr, "Cannot parse trace log(@dup2, pid):%s", pch);
             exit(EXIT_FAILURE);
           }
+          //TODO(Julie) Find trace_node from with the pid. If the trace_node
+          // does not exist, find the trace_node from previous node whos pid
+          // is less then the current.
+          proc_node* cur_proc = find_proc_node(new_fd->pid);
+          trace_node* old_trace = find_trace_node(new_fd->pid);
+          if (old_trace == NULL) {
+            //TODO(Julie) In this case, it comes from parent process or 
+            //another File io
+            syslog(LOG_WARNING, "This fd is from another op...");
+            continue;
+          } else {
+          }
+
         } else if (strstr(line, "dup") != NULL) {
         } else if (strstr(line, "fcntl") != NULL) {
         }
