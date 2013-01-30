@@ -183,6 +183,23 @@ trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
   return NULL;
 }
 
+trace_node* find_trace_node(trace_node* trace_tree, int fd) {
+  trace_node* t_ptr = trace_tree;
+  syslog(LOG_DEBUG, "enter find_trace_node with fd:%d", fd);
+  while (t_ptr != NULL) {
+    if (t_ptr->fd == fd) {
+      syslog(LOG_DEBUG, "Find trace_node fd:%d", t_ptr->fd);
+      return t_ptr;
+    } else if (t_ptr->fd > fd) {
+      t_ptr = t_ptr->lchild;
+    } else {
+      t_ptr = t_ptr->rchild;
+    }
+  }
+  syslog(LOG_DEBUG, "Cannot find the trace_node(%d) from the tree", fd);
+  return NULL;
+}
+
 int remove_trace_node(long int pid, long int fd) {
   syslog(LOG_DEBUG, "enter remove_trace_node with pid %ld, fd %ld", pid, fd);
   proc_node* cur_proc = find_proc_node(pid);

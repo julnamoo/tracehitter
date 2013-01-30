@@ -64,6 +64,9 @@ int exist_trace_node(trace_node *trace_tree, int fd);
 // Find parent trace_node from proc_list of pid with fd
 trace_node* find_parent_trace_node(trace_node* trace_tree, int fd);
 
+// Find trace_node from trace_tree of pid with fd
+trace_node* find_trace_node(trace_node* trace_tree, int fd);
+
 // Remove trace_node from trace_tree in proc_node and return pid
 int remove_trace_node(long int pid, long int fd);
 
