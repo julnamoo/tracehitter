@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
           }
         } else if (strstr(line, "read") != NULL) {
         } else if (strstr(line, "close") != NULL) {
-          //TODO(Julie) Find trace_node from proc_node and remove the trace_node
+          //Find trace_node from proc_node and remove the trace_node
           //from trace_tree in proc_node. If the node is the last, then remove
           //proc_node from proc_list like before.
           syslog(LOG_DEBUG, "enter close parser");
@@ -172,6 +172,44 @@ int main(int argc, char* argv[]) {
           }
         } else if (strstr(line, "lseek") != NULL) {
         } else if (strstr(line, "dup2") != NULL) {
+          syslog(LOG_DEBUG, "enter dup2 parser");
+          char* pch = strtok(line, " ");
+          if (pch != NULL) {
+            new_fd->pid = atol(pch);
+            syslog(LOG_DEBUG, "set pid %ld to new_fd to dup", new_fd->pid);
+          } else {
+            fprintf(stderr, "Cannot parse trace log(@dup2, pid):%s", pch);
+            exit(EXIT_FAILURE);
+          }
+
+          pch = strtok(NULL, " ");
+          pch = strtok(NULL, " ");
+          syslog(LOG_DEBUG, "current parser pos (@dup2):%s", pch);
+          if (pch != NULL) {
+            long int len = strlen(pch);
+            long int old = -1;
+            long int new = -1;
+            char* dup2 = (char*) malloc(sizeof(char) * len);
+            memcpy(dup2, pch, sizeof(char) * len);
+            pch = strtok(NULL, " ");
+            syslog(LOG_DEBUG, "current parser pos (@dup2):%s", pch);
+            new = atol(pch);
+            pch = strtok(NULL, "=");
+            pch = strtok(NULL, "=");
+            new_fd->rval = atol(pch);
+            syslog(LOG_DEBUG, "set rval(@dup2):%ld", new_fd->rval);
+            dup2 = strtok(dup2, "(,");
+            dup2 = strtok(NULL, "(,");
+            old = atol(dup2);
+            syslog(LOG_DEBUG, "Extract fds from dup2>>old:%ld, new:%ld",
+                old, new);
+            //TODO(Julie) Find trace_node from with the pid. If the trace_node
+            // does not exist, find the trace_node from previous node whos pid
+            // is less then the current.
+          } else {
+            fprintf(stderr, "Cannot parse trace log(@dup2, pid):%s", pch);
+            exit(EXIT_FAILURE);
+          }
         } else if (strstr(line, "dup") != NULL) {
         } else if (strstr(line, "fcntl") != NULL) {
         }

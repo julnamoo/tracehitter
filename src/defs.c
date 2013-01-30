@@ -228,8 +228,9 @@ int remove_trace_node(long int pid, long int fd) {
           cur_proc->trace_tree->trace->pid, cur_proc->trace_tree->fd);
     } else {
       syslog(LOG_DEBUG, "The tree is to empty...");
+      free(cur_proc->trace_tree);
+      cur_proc->trace_tree = NULL;
       //TODO(Julie) remove proc_node, too
-      p_trace = NULL;
     }
     syslog(LOG_DEBUG, "print trace tree");
     print_trace_tree(cur_proc->trace_tree);
