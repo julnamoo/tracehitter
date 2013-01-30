@@ -55,8 +55,10 @@ proc_node* find_proc_node(int pid) {
   proc_node* ptr = proc_list;
 
   for (; ptr != NULL; ptr = ptr->next_proc_node) {
-    if (ptr->pid == pid)
+    if (ptr->pid == pid) {
+      syslog(LOG_DEBUG, "Find proc_node(%d)", pid);
       return ptr;
+    }
   }
   syslog(LOG_DEBUG, "Cannot find proc_node(%d) from list (@find_proc_node)",
       pid);
@@ -149,7 +151,7 @@ trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
       return ptr;
     } else if (ptr->fd > fd) {
       if (ptr->lchild == NULL) {
-        fprintf(stderr, "Tree Fault:The %d is not in the tree", fd);
+        fprintf(stderr, "Tree Fault:The %d is not in the tree(l)\n", fd);
         return NULL;
       }
       if (ptr->lchild->fd == fd) {
@@ -162,7 +164,7 @@ trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
       }
     } else if (ptr->fd < fd) {
       if (ptr->rchild == NULL) {
-        fprintf(stderr, "Tree Fault:The %d is not in the tree", fd);
+        fprintf(stderr, "Tree Fault:The %d is not in the tree(r)\n", fd);
         return NULL;
       }
       if (ptr->rchild->fd == fd) {
@@ -184,6 +186,11 @@ int remove_trace_node(long int pid, long int fd) {
   proc_node* cur_proc = find_proc_node(pid);
   trace_node* p_trace = find_parent_trace_node(cur_proc->trace_tree, fd);
 
+  if (p_trace == NULL) {
+    syslog(LOG_WARNING, "This trace(pid:%d, fd:%ld) is from another op",
+        cur_proc->pid, fd);
+    return cur_proc->pid;
+  }
   /** case of the root **/
   if (p_trace->fd == fd) {
     syslog(LOG_DEBUG, "remove the root");
