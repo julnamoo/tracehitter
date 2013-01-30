@@ -141,7 +141,6 @@ int add_trace_node(int pid, trace_node *new_node) {
 }
 
 trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
-  //TODO(Julie)
   trace_node* ptr = trace_tree;
   while (ptr != NULL) {
     if (ptr->fd == fd) {
@@ -187,8 +186,37 @@ int remove_trace_node(long int pid, long int fd) {
 
   /** case of the root **/
   if (p_trace->fd == fd) {
-    //TODO(Julie)
+    syslog(LOG_DEBUG, "remove the root");
+    if (p_trace->rchild != NULL) {
+      trace_node* tmp = p_trace->rchild;
+      trace_node* p_tmp = p_trace;
+      while (tmp->lchild != NULL) {
+        p_tmp = tmp;
+        tmp = tmp->lchild;
+      }
+      if (tmp->rchild != NULL) {
+        p_tmp->rchild = tmp->rchild;
+      }
+      tmp->rchild = p_trace->rchild;
+      tmp->lchild = p_trace->lchild;
+      p_trace = tmp;
+      syslog(LOG_DEBUG,
+          "Set new root for trace_tree from right-child, pid:%ld, fd:%d",
+          p_trace->trace->pid, p_trace->fd);
+    } else if (p_trace->lchild != NULL) {
+      p_trace = p_trace->lchild;
+      syslog(LOG_DEBUG,
+          "Set new root for trace_tree from left-child, pid:%ld, fd:%d",
+          p_trace->trace->pid, p_trace->fd);
+    } else {
+      syslog(LOG_DEBUG, "The tree is to empty...");
+      //TODO(Julie) remove proc_node, too
+      p_trace = NULL;
+    }
+    return cur_proc->pid;
   }
+  p_trace = find_parent_trace_node(cur_proc->trace_tree, fd);
+
   /* check the rchild and lchild of cur_trace.
    * If it is not leaf node, reorder the tree */
   int f_side = p_trace->rchild->fd == fd ? RIGHT : LEFT; // 1:rchild, 0:lchild
