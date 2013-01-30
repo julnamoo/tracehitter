@@ -37,6 +37,7 @@ struct _trace_node {
 
 struct _pid_node {
   int pid;
+  int ppid;
   trace_node *trace_tree;
   proc_node *next_proc_node;
 };

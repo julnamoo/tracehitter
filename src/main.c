@@ -54,15 +54,20 @@ int main(int argc, char* argv[]) {
 
         if (strstr(line, "open") != NULL) {
           syslog(LOG_DEBUG, "enter open parser");
+          long int ppid;
           char* pch = strtok(line, " ");
           if (pch != NULL) {
             new_fd->pid = atol(pch);
             syslog(LOG_DEBUG, "set pid:%ld", new_fd->pid);
+            pch = strtok(NULL, " ");
+            ppid = atol(pch);
+            syslog(LOG_DEBUG, "catch ppid:%ld", ppid);
           } else {
             fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
             exit(EXIT_FAILURE);
           }
 
+          syslog(LOG_DEBUG, "current open parser pos:%s", pch);
           pch = strtok(NULL, " ");
           pch = strtok(NULL, " ");
           syslog(LOG_DEBUG, "get fname from:%s", pch);
@@ -107,6 +112,7 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "new process:%ld", new_fd->pid);
             proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
             new_proc->pid = new_fd->pid;
+            new_proc->ppid = ppid;
             new_proc->next_proc_node = NULL;
             new_proc->trace_tree = (trace_node*) malloc(sizeof(trace_node));
             new_proc->trace_tree->fd = new_fd->fd;
@@ -145,6 +151,7 @@ int main(int argc, char* argv[]) {
 
           pch = strtok(NULL, " ");
           pch = strtok(NULL, " ");
+          pch = strtok(NULL, " ");
           syslog(LOG_DEBUG, "current parser pos %s", pch);
           if (pch != NULL) {
             int len = strlen(pch);
@@ -174,9 +181,13 @@ int main(int argc, char* argv[]) {
         } else if (strstr(line, "dup2") != NULL) {
           syslog(LOG_DEBUG, "enter dup2 parser");
           char* pch = strtok(line, " ");
+          long int ppid = -1;
           if (pch != NULL) {
             new_fd->pid = atol(pch);
             syslog(LOG_DEBUG, "set pid %ld to new_fd to dup", new_fd->pid);
+            pch = strtok(NULL, " ");
+            ppid = atol(pch);
+            syslog(LOG_DEBUG, "find ppid:%ld", ppid);
           } else {
             fprintf(stderr, "Cannot parse trace log(@dup2, pid):%s", pch);
             exit(EXIT_FAILURE);
@@ -201,6 +212,11 @@ int main(int argc, char* argv[]) {
             dup2 = strtok(dup2, "(,");
             dup2 = strtok(NULL, "(,");
             old = atol(dup2);
+            new_fd->fd = old;
+            if (new != new_fd->rval) {
+              syslog(LOG_DEBUG, "Fail dup2(%ld, %ld)", new, old);
+              continue;
+            }
             syslog(LOG_DEBUG, "Extract fds from dup2>>old:%ld, new:%ld",
                 old, new);
           } else {
@@ -211,15 +227,26 @@ int main(int argc, char* argv[]) {
           // does not exist, find the trace_node from previous node whos pid
           // is less then the current.
           proc_node* cur_proc = find_proc_node(new_fd->pid);
-          trace_node* old_trace = find_trace_node(new_fd->pid);
-          if (old_trace == NULL) {
-            //TODO(Julie) In this case, it comes from parent process or 
-            //another File io
-            syslog(LOG_WARNING, "This fd is from another op...");
-            continue;
+          trace_node* new_trace = NULL;
+          
+          if (cur_proc == NULL) {
+            //TODO(Julie) add new proc_node and set new trace_tree.
+            //Also, add new trace_node to trace_tree
+            syslog(LOG_DEBUG, "Add a new child process....");
           } else {
+            trace_node* old_trace = find_trace_node(cur_proc->trace_tree,
+                new_fd->fd);
+            if (old_trace == NULL) {
+              //TODO(Julie) Find trace_node from parent process
+              //It is passed although the parent does not have the trace_node
+              syslog(LOG_DEBUG, "Find fd(%ld) from parent process(%ld)",
+                  new_fd->fd, ppid);
+            } else {
+              //TODO(Julie) copy trace_node from parent to child
+              syslog(LOG_DEBUG, "Copy trace_node(%ld) to trace_node(%ld)",
+                  new_fd->fd, new_fd->rval);
+            }
           }
-
         } else if (strstr(line, "dup") != NULL) {
         } else if (strstr(line, "fcntl") != NULL) {
         }
