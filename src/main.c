@@ -96,6 +96,11 @@ int main(int argc, char* argv[]) {
           syslog(LOG_DEBUG, "set fd:%ld", new_fd->fd);
           new_fd->rval = atol(pch);
           syslog(LOG_DEBUG, "set rval:%ld", new_fd->rval);
+          if (new_fd->rval < 0) {
+            syslog(LOG_DEBUG, "Fail to open file %s", new_fd->fname);
+            free(new_fd);
+            continue;
+          }
           
           /** add new_fd to proc_node **/
           if (exist_proc_node(new_fd->pid) == FALSE) {
