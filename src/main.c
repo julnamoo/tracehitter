@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
       // read : find proper offset in reading file and convert '0' to '1'
       // at read bit
       // close : free the trace struct and closing read bit file
-      // dup, dup2 : TODO(Julie)
+      // dup, dup2 : copy trace structure and add to trace_tree of the process
       
       /** check unfinished or resumed **/
       if (strstr(line, "unfinished") != NULL) {
@@ -232,7 +232,18 @@ int main(int argc, char* argv[]) {
           if (cur_proc == NULL) {
             //TODO(Julie) add new proc_node and set new trace_tree.
             //Also, add new trace_node to trace_tree
-            syslog(LOG_DEBUG, "Add a new child process....");
+            proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
+            new_proc->pid = new_fd->pid;
+            new_proc->ppid = ppid;
+            new_proc->next_proc_node = NULL;
+            new_proc->trace_tree = (trace_node*) malloc(sizeof(trace_node));
+            new_proc->trace_tree->fd = new_fd->fd;
+            new_proc->trace_tree->trace = new_fd;
+            new_proc->trace_tree->rchild = NULL;
+            new_proc->trace_tree->lchild = NULL;
+            add_proc_node(new_proc->pid, new_proc);
+            syslog(LOG_DEBUG, "Add a new child process (pid:%d) to (pid:%d)",
+                new_proc->ppid, new_proc->pid);
           } else {
             trace_node* old_trace = find_trace_node(cur_proc->trace_tree,
                 new_fd->fd);
