@@ -232,15 +232,33 @@ int main(int argc, char* argv[]) {
           if (cur_proc == NULL) {
             //TODO(Julie) add new proc_node and set new trace_tree.
             //Also, add new trace_node to trace_tree
+            proc_node *parent_proc = find_proc_node(ppid);
+            if (parent_proc == NULL) {
+              fprintf(stderr, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+                  ppid, new_fd->pid, new_fd->fd);
+              syslog("Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+                  ppid, new_fd->pid, new_fd->fd);
+              continue;
+            }
             proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
             new_proc->pid = new_fd->pid;
             new_proc->ppid = ppid;
             new_proc->next_proc_node = NULL;
-            new_proc->trace_tree = (trace_node*) malloc(sizeof(trace_node));
-            new_proc->trace_tree->fd = new_fd->fd;
-            new_proc->trace_tree->trace = new_fd;
-            new_proc->trace_tree->rchild = NULL;
-            new_proc->trace_tree->lchild = NULL;
+            // set trace by parent trace_node and change the pid and the fd
+            // with copied value
+            new_trace = (trace_node*) malloc(sizeof(trace_node));
+            memcpy(new_trace, find_trace_node(parent_proc, new_fd->fd),
+                sizeof(trace_node));
+            syslog(LOG_DEBUG,
+                "copy trace_ from (pid:%ld, fd:%ld) to (pid:%ld, fd:%ld)",
+                ppid, new_fd->fd, new_trace->pid, new_trace->fd);
+            new_trace->fd = new_fd->rval;
+            new_trace->pid = new_fd->pid;
+            new_fd->fd = new_fd->rval;
+            new_trace->trace = new_fd;
+            new_trace->rchild = NULL;
+            new_trace->lchild = NULL;
+            new_proc->trace_tree = new_trace;
             add_proc_node(new_proc->pid, new_proc);
             syslog(LOG_DEBUG, "Add a new child process (pid:%d) to (pid:%d)",
                 new_proc->ppid, new_proc->pid);
