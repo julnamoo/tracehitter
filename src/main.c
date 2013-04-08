@@ -179,6 +179,80 @@ int main(int argc, char* argv[]) {
             exit(EXIT_FAILURE);
           }
         } else if (strstr(line, "lseek") != NULL) {
+          syslog(LOG_DEBUG, "enter lseek parser");
+          char* pch = strtok(line, " ");
+          int op, fd, rval;
+          long int pid, ppid;
+
+          proc_node* cur_proc = NULL;
+          trace_node* cur_trace = NULL;
+          op = fd = rval = 0;
+          pid = ppid = -1;
+          free(new_fd);
+
+          if (pch != NULL) {
+            pid = atol(pch);
+            syslog(LOG_DEBUG, "set pid %ld to new_fd @lseek", pid);
+            pch = strtok(NULL, " ");
+            ppid = atol(pch);
+            syslog(LOG_DEBUG, "set ppid %ld @lseek", ppid);
+          } else {
+            fprintf(stderr, "Cannot parse trace log (@lseek, pid):%s", pch);
+            exit(EXIT_FAILURE);
+          }
+
+          pch = strtok(NULL, "(),= ");
+          pch = strtok(NULL, " (),=");
+          pch = strtok(NULL, "(),= ");
+          fd = atoi(pch);
+          syslog(LOG_DEBUG, "Current parser pos(@lseek1):%s", pch);
+          
+          pch = strtok(NULL, " (),=");
+          pch = strtok(NULL, "(),= ");
+          if (strstr(pch, "END")) {
+            op = -1; // SEEK_END
+          } else if (strstr(pch, "SET")) {
+            op = 1; //SEEK_SET
+          } else if (strstr(pch, "CUR")) {
+            op = 0; //SEEK_CUR
+          }
+          syslog(LOG_DEBUG, "Current parser pos(@lseek2):%s", pch);
+
+          pch = strtok(NULL, "(),= ");
+          rval = atoi(pch);
+          syslog(LOG_DEBUG, "Current parser pos(@lseek3):%s", pch);
+
+          cur_proc = find_proc_node(pid);
+          if (cur_proc == NULL) {
+            syslog(LOG_WARNING, "lseek:Cannot find the procesd(pid:%ld)", pid);
+            continue;
+          }
+          cur_trace = find_trace_node(cur_proc->trace_tree, fd);
+          if (cur_trace == NULL) {
+            syslog(LOG_WARNING, "lseek:Cannot find the trace_node(pid:%ld, fd:%d",
+                pid, fd);
+            continue;
+          }
+          new_fd = cur_trace->trace;
+          if (new_fd == NULL) {
+            syslog(LOG_WARNING, "lseek:Unavailable lseek..(pid:%ld, fd:%d)", pid, fd);
+            fprintf(stderr, "lseek:Unavailable lseek..(pid:%ld, fd:%d)\n", pid, fd);
+            continue;
+          } else {
+            switch (op) {
+              case -1:
+                new_fd->offset = rval;
+                break;
+              case 0:
+                new_fd->offset += rval;
+                break;
+              case 1:
+                new_fd->offset = 0;
+                break;
+            }
+            syslog(LOG_DEBUG, "Set new offset of pid(%ld), fd(%ld) to %ld",
+                new_fd->pid, new_fd->fd, new_fd->offset);
+          }
         } else if (strstr(line, "dup2") != NULL) {
           /** copy a trace_node and insert in to trace_tree of the proc_node
            * from exist trace_node **/
