@@ -236,7 +236,16 @@ int main(int argc, char* argv[]) {
             if (parent_proc == NULL) {
               fprintf(stderr, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
-              syslog("Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+              syslog(LOG_DEBUG, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+                  ppid, new_fd->pid, new_fd->fd);
+              continue;
+            }
+            trace_node* old_trace = find_trace_node(parent_proc->trace_tree,
+                new_fd->fd);
+            if (old_trace == NULL) {
+              fprintf(stderr, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+                  ppid, new_fd->pid, new_fd->fd);
+              syslog(LOG_DEBUG, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
               continue;
             }
@@ -247,13 +256,12 @@ int main(int argc, char* argv[]) {
             // set trace by parent trace_node and change the pid and the fd
             // with copied value
             new_trace = (trace_node*) malloc(sizeof(trace_node));
-            memcpy(new_trace, find_trace_node(parent_proc, new_fd->fd),
+            memcpy(new_trace, find_trace_node(parent_proc->trace_tree, new_fd->fd),
                 sizeof(trace_node));
             syslog(LOG_DEBUG,
-                "copy trace_ from (pid:%ld, fd:%ld) to (pid:%ld, fd:%ld)",
-                ppid, new_fd->fd, new_trace->pid, new_trace->fd);
+                "copy trace_ from (pid:%ld, fd:%ld) to (pid:%ld, fd:%d)",
+                ppid, new_fd->fd, new_trace->trace->pid, new_trace->fd);
             new_trace->fd = new_fd->rval;
-            new_trace->pid = new_fd->pid;
             new_fd->fd = new_fd->rval;
             new_trace->trace = new_fd;
             new_trace->rchild = NULL;
@@ -268,8 +276,43 @@ int main(int argc, char* argv[]) {
             if (old_trace == NULL) {
               //TODO(Julie) Find trace_node from parent process
               //It is passed although the parent does not have the trace_node
-              syslog(LOG_DEBUG, "Find fd(%ld) from parent process(%ld)",
-                  new_fd->fd, ppid);
+              syslog(LOG_DEBUG, "Start to find the trace node from parent");
+              proc_node* pp_node = find_proc_node(cur_proc->ppid);
+              if (pp_node == NULL) {
+                syslog(LOG_WARNING,
+                    "Cannot find parent proc_node...(ppid:%d, pid:%d, fd:%d)",
+                    cur_proc->ppid, cur_proc->pid, old_trace->fd);
+                fprintf(stderr,
+                    "Cannot find parent proc_node...(ppid:%d, pid:%d, fd:%d)",
+                    pp_node->pid, cur_proc->pid, old_trace->fd);
+                continue;
+              } else {
+                old_trace = find_trace_node(pp_node->trace_tree, new_fd->fd);
+                if (old_trace == NULL) {
+                  syslog(LOG_WARNING,
+                      "Cannot find original trace_node..(ppid:%d, pid:%d, fd:%d)",
+                      pp_node->pid, cur_proc->pid, old_trace->fd);
+                  fprintf(stderr,
+                      "Cannot find original trace_node..(ppid:%d, pid:%d, fd:%d)",
+                      pp_node->pid, cur_proc->pid, old_trace->fd);
+                  continue;
+                } else {
+                  syslog(LOG_DEBUG, "Find old fd(%ld) from parent process(%ld)",
+                    new_fd->fd, ppid);
+                  syslog(LOG_DEBUG, "Start copy trace node");
+                  new_trace = (trace_node*) malloc(sizeof(trace_node));
+                  memcpy(new_trace, old_trace, sizeof(trace_node));
+                  syslog(LOG_DEBUG,
+                    "copy trace_ from (pid:%ld, fd:%d) to (pid:%ld, fd:%ld)",
+                    old_trace->trace->pid, old_trace->fd, new_trace->trace->pid, new_fd->rval);
+                  new_trace->fd = new_fd->rval;
+                  new_fd->fd = new_fd->rval;
+                  new_trace->trace = new_fd;
+                  new_trace->rchild = NULL;
+                  new_trace->lchild = NULL;
+                  add_trace_node(new_trace->trace->pid, new_trace);
+                }
+              }
             } else {
               //TODO(Julie) copy trace_node from parent to child
               syslog(LOG_DEBUG, "Copy trace_node(%ld) to trace_node(%ld)",
