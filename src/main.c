@@ -234,18 +234,14 @@ int main(int argc, char* argv[]) {
              * new process node with pid and link it to the parent **/
             proc_node *parent_proc = find_proc_node(ppid);
             if (parent_proc == NULL) {
-              fprintf(stderr, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)\n",
-                  ppid, new_fd->pid, new_fd->fd);
-              syslog(LOG_DEBUG, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+              syslog(LOG_DEBUG, "dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
               continue;
             }
             trace_node* old_trace = find_trace_node(parent_proc->trace_tree,
                 new_fd->fd);
             if (old_trace == NULL) {
-              fprintf(stderr, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)\n",
-                  ppid, new_fd->pid, new_fd->fd);
-              syslog(LOG_DEBUG, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+              syslog(LOG_DEBUG, "dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
               continue;
             }
@@ -280,17 +276,11 @@ int main(int argc, char* argv[]) {
                 syslog(LOG_WARNING,
                     "Cannot find parent proc_node...(ppid:%d, pid:%d, fd:%d)",
                     cur_proc->ppid, cur_proc->pid, old_trace->fd);
-                fprintf(stderr,
-                    "Cannot find parent proc_node...(ppid:%d, pid:%d, fd:%d)",
-                    pp_node->pid, cur_proc->pid, old_trace->fd);
                 continue;
               } else {
                 old_trace = find_trace_node(pp_node->trace_tree, new_fd->fd);
                 if (old_trace == NULL) {
                   syslog(LOG_WARNING,
-                      "Cannot find original trace_node..(ppid:%d, pid:%d, fd:%d)",
-                      pp_node->pid, cur_proc->pid, old_trace->fd);
-                  fprintf(stderr,
                       "Cannot find original trace_node..(ppid:%d, pid:%d, fd:%d)",
                       pp_node->pid, cur_proc->pid, old_trace->fd);
                   continue;
@@ -300,7 +290,6 @@ int main(int argc, char* argv[]) {
                 }
               }
             } else {
-              //TODO(Julie) copy trace_node from parent to child
               syslog(LOG_DEBUG, "Start copy trace node");
               new_trace = (trace_node*) malloc(sizeof(trace_node));
               memcpy(new_trace, old_trace, sizeof(trace_node));
