@@ -7,7 +7,7 @@
 
 #include "defs.h"
 
-#define LINE_MAX 1024
+#define LINE_MAX 4096
 
 int main(int argc, char* argv[]) {
 
@@ -47,12 +47,13 @@ int main(int argc, char* argv[]) {
       
       /** check unfinished or resumed **/
       if (strstr(line, "unfinished") != NULL) {
+        syslog(LOG_DEBUG, "enter unfinished..");
       } else if (strstr(line, "resumed") != NULL) {
       } else {
         trace *new_fd = (trace *) malloc(sizeof(trace));
         new_fd->state = 1;
 
-        if (strstr(line, "open") != NULL) {
+        if (strstr(line, "open(") != NULL) {
           syslog(LOG_DEBUG, "enter open parser");
           long int ppid;
           char* pch = strtok(line, " ");
@@ -178,7 +179,7 @@ int main(int argc, char* argv[]) {
                 new_fd->pid);
             exit(EXIT_FAILURE);
           }
-        } else if (strstr(line, "lseek") != NULL) {
+        } else if (strstr(line, "lseek(") != NULL) {
           syslog(LOG_DEBUG, "enter lseek parser");
           char* pch = strtok(line, " ");
           int op, fd, rval;
@@ -379,8 +380,8 @@ int main(int argc, char* argv[]) {
               add_trace_node(new_trace->trace->pid, new_trace);
             }
           }
-        } else if (strstr(line, "dup") != NULL) {
-        } else if (strstr(line, "fcntl") != NULL) {
+        } else if (strstr(line, "dup(") != NULL) {
+        } else if (strstr(line, "fcntl(") != NULL) {
         }
       }
       l_pos = 0;
