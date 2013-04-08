@@ -136,8 +136,62 @@ int main(int argc, char* argv[]) {
                 "complete to add new trace node into pid %ld, fd %ld",
                 new_fd->pid, new_fd->fd);
           }
-        } else if (strstr(line, "read") != NULL) {
-        } else if (strstr(line, "close") != NULL) {
+        } else if (strstr(line, "read(") != NULL) {
+          syslog(LOG_DEBUG, "enter read parser");
+          char* pch = strtok(line, "()=, ");
+          long int ppid = 0;
+          proc_node* cur_proc;
+          trace_node* cur_trace;
+          int len;
+
+          /** For print byte offset **/
+          FILE read_fp = NULL;
+
+          new_fd->pid = atol(pch);
+          pch = strtok(NULL, "()=, ");
+          cur_proc = find_proc_node(new_fd->pid);
+          if (cur_proc == NULL) {
+            fprintf(stderr, "read:Cannot operate reading on non-exist process(%ld)",
+                new_fd->pid);
+            syslog(LOG_WARNING, "read:Cannot operate reading on non-exist process(%ld)",
+                new_fd->pid);
+            continue;
+          }
+          ppid = atol(pch);
+          syslog(LOG_DEBUG, "read:Set pid:%ld, ppid:%ld", new_fd->pid, ppid);
+
+          pch = strtok(NULL, "()=, ");
+          pch = strtok(NULL, "()=, ");
+          pch = strtok(NULL, "()=, ");
+          new_fd->fd = atol(pch);
+          syslog(LOG_DEBUG, "read:Set fd:%ld", new_fd->fd);
+          cur_trace = find_trace_node(cur_proc->trace_tree, new_fd->fd);
+          if (cur_trace == NULL) {
+            fprintf(stderr, "read:There is not opened fd..(pid:%ld, fd:%ld)",
+                new_fd->pid, new_fd->fd);
+            syslog(LOG_WARNING, "read:There is not opened fd..(pid:%ld, fd:%ld)",
+                new_fd->pid, new_fd->fd);
+            continue;
+          }
+          free(new_fd);
+
+          pch = strtok(NULL, "()=, ");
+          pch = strtok(NULL, "()=, ");
+          len = atol(pch);
+
+          pch = strtok(NULL, "()=, ");
+          cur_trace->trace->rval = atol(pch);
+          syslog(LOG_DEBUG, "read:Set fd:%ld, request %ld read, success %ld"
+              cur_trace->trace->fd, len, cur_trace->trace->rval);
+          //TODO(Julie) Print 1 from the current offset to rval
+          syslog(LOG_DEBUG, "read:Open File by %s");
+          read_fp = fopen(cur_trace->trace->fname, "w");
+
+          syslog(LOG_DEBUG, "read:Update fd offset from %ld to %ld",
+              cur_trace->trace->offset, cur_trace->trace->offset+new_fd->rval);
+          cur_trace->trace->offset += rval;
+          
+        } else if (strstr(line, "close(") != NULL) {
           //Find trace_node from proc_node and remove the trace_node
           //from trace_tree in proc_node. If the node is the last, then remove
           //proc_node from proc_list like before.
