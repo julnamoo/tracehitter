@@ -26,6 +26,7 @@ struct _trace {
   long fd;
   char* fname;
   long rval;
+  long int offset;
 };
 
 struct _trace_node {
