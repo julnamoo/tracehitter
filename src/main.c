@@ -127,6 +127,7 @@ int main(int argc, char* argv[]) {
             trace_node *new_trace = (trace_node*) malloc(sizeof(trace_node));
             new_trace->fd = new_fd->fd;
             new_trace->trace = new_fd;
+            new_trace->trace->offset = 0;
             new_trace->rchild = NULL;
             new_trace->lchild = NULL;
             add_trace_node(new_fd->pid, new_trace);
@@ -309,6 +310,7 @@ int main(int argc, char* argv[]) {
               new_trace->fd = new_fd->rval;
               new_fd->fd = new_fd->rval;
               new_trace->trace = new_fd;
+              new_trace->trace->offset = 0;
               new_trace->rchild = NULL;
               new_trace->lchild = NULL;
               add_trace_node(new_trace->trace->pid, new_trace);
