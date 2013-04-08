@@ -268,6 +268,7 @@ int main(int argc, char* argv[]) {
               //TODO(Julie) Find trace_node from parent process
               //It is passed although the parent does not have the trace_node
               syslog(LOG_DEBUG, "Cannot Find fd(%ld) from parent process(%ld)",
+              syslog(LOG_DEBUG, "Find fd(%ld) from parent process(%ld)",
                   new_fd->fd, ppid);
             } else {
               //TODO(Julie) copy trace_node from parent to child
