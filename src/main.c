@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
           int len;
 
           /** For print byte offset **/
-          FILE read_fp = NULL;
+          FILE op_fp = NULL;
 
           new_fd->pid = atol(pch);
           pch = strtok(NULL, "()=, ");
@@ -185,7 +185,7 @@ int main(int argc, char* argv[]) {
               cur_trace->trace->fd, len, cur_trace->trace->rval);
           //TODO(Julie) Print 1 from the current offset to rval
           syslog(LOG_DEBUG, "read:Open File by %s");
-          read_fp = fopen(cur_trace->trace->fname, "w");
+          op_fp = fopen(cur_trace->trace->fname, "w");
 
           syslog(LOG_DEBUG, "read:Update fd offset from %ld to %ld",
               cur_trace->trace->offset, cur_trace->trace->offset+new_fd->rval);
