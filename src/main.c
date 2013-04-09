@@ -59,19 +59,19 @@ int main(int argc, char* argv[]) {
           char* pch = strtok(line, " ");
           if (pch != NULL) {
             new_fd->pid = atol(pch);
-            syslog(LOG_DEBUG, "set pid:%ld", new_fd->pid);
+            syslog(LOG_DEBUG, "open:set pid:%ld", new_fd->pid);
             pch = strtok(NULL, " ");
             ppid = atol(pch);
-            syslog(LOG_DEBUG, "catch ppid:%ld", ppid);
+            syslog(LOG_DEBUG, "open:catch ppid:%ld", ppid);
           } else {
             fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
             exit(EXIT_FAILURE);
           }
 
-          syslog(LOG_DEBUG, "current open parser pos:%s", pch);
+          syslog(LOG_DEBUG, "open:current parser pos:%s", pch);
           pch = strtok(NULL, " ");
           pch = strtok(NULL, " ");
-          syslog(LOG_DEBUG, "get fname from:%s", pch);
+          syslog(LOG_DEBUG, "open:get fname from:%s", pch);
           if (pch != NULL) {
             int len = strlen(pch);
             char* tmp = (char*) malloc(sizeof(char) * len);
@@ -155,6 +155,7 @@ int main(int argc, char* argv[]) {
                 new_fd->pid);
             syslog(LOG_WARNING, "read:Cannot operate reading on non-exist process(%ld)",
                 new_fd->pid);
+            free(new_fd);
             continue;
           }
           ppid = atol(pch);
@@ -167,10 +168,11 @@ int main(int argc, char* argv[]) {
           syslog(LOG_DEBUG, "read:Set fd:%ld", new_fd->fd);
           cur_trace = find_trace_node(cur_proc->trace_tree, new_fd->fd);
           if (cur_trace == NULL) {
-            fprintf(stderr, "read:There is not opened fd..(pid:%ld, fd:%ld)",
+            fprintf(stderr, "read:There is not opened fd..(pid:%ld, fd:%ld)\n",
                 new_fd->pid, new_fd->fd);
             syslog(LOG_WARNING, "read:There is not opened fd..(pid:%ld, fd:%ld)",
                 new_fd->pid, new_fd->fd);
+            free(new_fd);
             continue;
           }
           free(new_fd);
@@ -202,6 +204,7 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "set pid %ld to new_fd to close", new_fd->pid);
           } else {
             fprintf(stderr, "Cannot parse trace log(@close, pid):%s", pch);
+            free(new_fd);
             exit(EXIT_FAILURE);
           }
 
@@ -279,19 +282,22 @@ int main(int argc, char* argv[]) {
 
           cur_proc = find_proc_node(pid);
           if (cur_proc == NULL) {
-            syslog(LOG_WARNING, "lseek:Cannot find the procesd(pid:%ld)", pid);
+            syslog(LOG_WARNING, "lseek:Cannot find the process(pid:%ld)", pid);
+            free(new_fd);
             continue;
           }
           cur_trace = find_trace_node(cur_proc->trace_tree, fd);
           if (cur_trace == NULL) {
             syslog(LOG_WARNING, "lseek:Cannot find the trace_node(pid:%ld, fd:%d",
                 pid, fd);
+            free(new_fd);
             continue;
           }
           new_fd = cur_trace->trace;
           if (new_fd == NULL) {
             syslog(LOG_WARNING, "lseek:Unavailable lseek..(pid:%ld, fd:%d)", pid, fd);
             fprintf(stderr, "lseek:Unavailable lseek..(pid:%ld, fd:%d)\n", pid, fd);
+            free(new_fd);
             continue;
           } else {
             switch (op) {
@@ -347,6 +353,7 @@ int main(int argc, char* argv[]) {
             new_fd->fd = old;
             if (new != new_fd->rval) {
               syslog(LOG_DEBUG, "Fail dup2(%ld, %ld)", new, old);
+              free(new_fd);
               continue;
             }
             syslog(LOG_DEBUG, "Extract fds from dup2>>old:%ld, new:%ld",
@@ -365,6 +372,7 @@ int main(int argc, char* argv[]) {
             if (parent_proc == NULL) {
               syslog(LOG_DEBUG, "dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
+              free(new_fd);
               continue;
             }
             trace_node* old_trace = find_trace_node(parent_proc->trace_tree,
@@ -372,6 +380,7 @@ int main(int argc, char* argv[]) {
             if (old_trace == NULL) {
               syslog(LOG_DEBUG, "dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
+              free(new_fd);
               continue;
             }
             proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
@@ -405,6 +414,7 @@ int main(int argc, char* argv[]) {
                 syslog(LOG_WARNING,
                     "Cannot find parent proc_node...(ppid:%d, pid:%d, fd:%d)",
                     cur_proc->ppid, cur_proc->pid, old_trace->fd);
+                free(new_fd);
                 continue;
               } else {
                 old_trace = find_trace_node(pp_node->trace_tree, new_fd->fd);
@@ -412,6 +422,7 @@ int main(int argc, char* argv[]) {
                   syslog(LOG_WARNING,
                       "Cannot find original trace_node..(ppid:%d, pid:%d, fd:%d)",
                       pp_node->pid, cur_proc->pid, old_trace->fd);
+                  free(new_fd);
                   continue;
                 } else {
                   syslog(LOG_DEBUG, "Find old fd(%ld) from parent process(%ld)",
