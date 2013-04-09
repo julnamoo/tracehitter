@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
             fpath = strtok(NULL, "\"");
             if (fpath != NULL) {
               new_fd->fname = fpath;
-              syslog(LOG_DEBUG, "set fname:%s", new_fd->fname);
+              syslog(LOG_DEBUG, "open:set fname:%s", new_fd->fname);
             } else {
               fprintf(stderr, "Cannot parse trace log(@open, fname1):%s\n", fpath);
               free(tmp);
@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
               exit(EXIT_FAILURE);
           }
 
-          syslog(LOG_DEBUG, "current parser pos:%s", pch);
+          syslog(LOG_DEBUG, "open:current parser pos:%s", pch);
           new_fd->fd = atol(pch);
           syslog(LOG_DEBUG, "set fd:%ld", new_fd->fd);
           new_fd->rval = atol(pch);
@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
           
           /** add new_fd to proc_node **/
           if (exist_proc_node(new_fd->pid) == FALSE) {
-            syslog(LOG_DEBUG, "new process:%ld", new_fd->pid);
+            syslog(LOG_DEBUG, "open:new process..%ld", new_fd->pid);
             proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
             new_proc->pid = new_fd->pid;
             new_proc->ppid = ppid;
@@ -122,9 +122,9 @@ int main(int argc, char* argv[]) {
             new_proc->trace_tree->lchild = NULL;
             add_proc_node(new_proc->pid, new_proc);
           } else {
-            syslog(LOG_DEBUG, "exist process:%ld", new_fd->pid);
+            syslog(LOG_DEBUG, "open:exist process..%ld", new_fd->pid);
             proc_node *cur_proc = find_proc_node(new_fd->pid);
-            syslog(LOG_DEBUG, "success to find proc_node:%d", cur_proc->pid);
+            syslog(LOG_DEBUG, "open:success to find proc_node:%d", cur_proc->pid);
             trace_node *new_trace = (trace_node*) malloc(sizeof(trace_node));
             new_trace->fd = new_fd->fd;
             new_trace->trace = new_fd;
