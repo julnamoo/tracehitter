@@ -1,4 +1,5 @@
 // Copyright (c) 2013 by Julie Kim (kjulee114@gmail.com)
+#include <string.h>
 
 #include "defs.h"
 
@@ -324,4 +325,15 @@ int remove_trace_node(long int pid, long int fd) {
   syslog(LOG_DEBUG, "print trace tree");
   print_trace_tree(cur_proc->trace_tree);
   return p_trace->trace->pid;
+}
+
+void char_replace(char s1, char s2, const char* src, char* dest) {
+  int i = 0;
+  int len = strlen(src);
+  strncpy(dest, src, len);
+  for (; i < len; i++) {
+    if (src[i] == s1) {
+      dest[i] = s2;
+    }
+  }
 }
