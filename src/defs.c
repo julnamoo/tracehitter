@@ -96,13 +96,13 @@ int add_trace_node(int pid, trace_node *new_node) {
   proc_node* p_ptr = find_proc_node(pid);
   trace_node* ttree_ptr = p_ptr->trace_tree;
   if (ttree_ptr == NULL) {
-    ttree_ptr = new_node;
+    p_ptr->trace_tree = new_node;
     syslog(LOG_DEBUG, "Is it really the first trace_node of %d(pid)?", pid);
-    ttree_ptr->rchild = NULL;
-    ttree_ptr->lchild = NULL;
+    p_ptr->trace_tree->rchild = NULL;
+    p_ptr->trace_tree->lchild = NULL;
     syslog(LOG_DEBUG, "print trace tree");
-    print_trace_tree(ttree_ptr);
-    return ttree_ptr->fd;
+    print_trace_tree(p_ptr->trace_tree);
+    return p_ptr->trace_tree->fd;
   }
   trace_node* tmp_ptr = ttree_ptr;
   trace_node* tmp_p_ptr = ttree_ptr;
@@ -187,6 +187,7 @@ trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
 trace_node* find_trace_node(trace_node* trace_tree, int fd) {
   trace_node* t_ptr = trace_tree;
   syslog(LOG_DEBUG, "enter find_trace_node with fd:%d", fd);
+  print_trace_tree(trace_tree);
   while (t_ptr != NULL) {
     if (t_ptr->fd == fd) {
       syslog(LOG_DEBUG, "Find trace_node fd:%d", t_ptr->fd);
