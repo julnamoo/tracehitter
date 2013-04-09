@@ -145,7 +145,9 @@ int main(int argc, char* argv[]) {
           int len;
 
           /** For print byte offset **/
-          FILE op_fp = NULL;
+          FILE* op_fp;
+          char* tmp_fname = NULL;
+          int f_size = 0;
 
           new_fd->pid = atol(pch);
           pch = strtok(NULL, "()=, ");
@@ -183,15 +185,35 @@ int main(int argc, char* argv[]) {
 
           pch = strtok(NULL, "()=, ");
           cur_trace->trace->rval = atol(pch);
-          syslog(LOG_DEBUG, "read:Set fd:%ld, request %ld read, success %ld"
+          syslog(LOG_DEBUG, "read:Set fd:%ld, request read %d, success %ld",
               cur_trace->trace->fd, len, cur_trace->trace->rval);
           //TODO(Julie) Print 1 from the current offset to rval
-          syslog(LOG_DEBUG, "read:Open File by %s");
-          op_fp = fopen(cur_trace->trace->fname, "w");
+          tmp_fname = (char*) malloc(sizeof(char) * strlen(cur_trace->trace->fname)
+              + strlen("_t1"));
+          char_replace('/', '_', cur_trace->trace->fname, tmp_fname);
+          strcat(tmp_fname, "_t1");
+          syslog(LOG_DEBUG, "read:Open File by %s", tmp_fname);
+          op_fp = fopen(tmp_fname, "w");
+          fseek(op_fp, 0L, SEEK_END);
+          f_size = ftell(op_fp);
 
+          syslog(LOG_DEBUG, "read:Rollback to current fd(%ld)'s offset:%ld",
+              cur_trace->trace->fd, cur_trace->trace->offset);
+          fseek(op_fp, cur_trace->trace->offset, SEEK_SET);
+          if (f_size > cur_trace->trace->offset ||
+              f_size == cur_trace->trace->offset) {
+            int i = 0;
+            for (; i < cur_trace->trace->rval; ++i) {
+              putc('1', op_fp);
+            }
+          } else {
+            //TODO(Julie) when current file is smaller..
+          }
+
+          fclose(op_fp);
           syslog(LOG_DEBUG, "read:Update fd offset from %ld to %ld",
               cur_trace->trace->offset, cur_trace->trace->offset+new_fd->rval);
-          cur_trace->trace->offset += rval;
+          cur_trace->trace->offset += cur_trace->trace->rval;
           
         } else if (strstr(line, "close(") != NULL) {
           //Find trace_node from proc_node and remove the trace_node
