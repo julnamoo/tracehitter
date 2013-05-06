@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <sys/stat.h>
 
 #include "defs.h"
 
-#define LINE_MAX 1024
+#define LINE_MAX 4096
 
 int main(int argc, char* argv[]) {
 
@@ -47,43 +48,44 @@ int main(int argc, char* argv[]) {
       
       /** check unfinished or resumed **/
       if (strstr(line, "unfinished") != NULL) {
+        syslog(LOG_DEBUG, "enter unfinished..");
       } else if (strstr(line, "resumed") != NULL) {
       } else {
         trace *new_fd = (trace *) malloc(sizeof(trace));
         new_fd->state = 1;
 
-        if (strstr(line, "open") != NULL) {
+        if (strstr(line, "open(") != NULL) {
           syslog(LOG_DEBUG, "enter open parser");
           long int ppid;
           char* pch = strtok(line, " ");
           if (pch != NULL) {
             new_fd->pid = atol(pch);
-            syslog(LOG_DEBUG, "set pid:%ld", new_fd->pid);
+            syslog(LOG_DEBUG, "open:set pid:%ld", new_fd->pid);
             pch = strtok(NULL, " ");
             ppid = atol(pch);
-            syslog(LOG_DEBUG, "catch ppid:%ld", ppid);
+            syslog(LOG_DEBUG, "open:catch ppid:%ld", ppid);
           } else {
             fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
             exit(EXIT_FAILURE);
           }
 
-          syslog(LOG_DEBUG, "current open parser pos:%s", pch);
+          syslog(LOG_DEBUG, "open:current parser pos:%s", pch);
           pch = strtok(NULL, " ");
           pch = strtok(NULL, " ");
-          syslog(LOG_DEBUG, "get fname from:%s", pch);
+          syslog(LOG_DEBUG, "open:get fname from:%s", pch);
           if (pch != NULL) {
             int len = strlen(pch);
             char* tmp = (char*) malloc(sizeof(char) * len);
             memcpy(tmp, pch, sizeof(char) * len);
             /** prevent from losing rval **/
-            pch = strtok(NULL, "=");
-            pch = strtok(NULL, "=");
+            pch = strtok(NULL, " =");
+            pch = strtok(NULL, " =");
 
             char* fpath = strtok(tmp, "\"");
             fpath = strtok(NULL, "\"");
             if (fpath != NULL) {
               new_fd->fname = fpath;
-              syslog(LOG_DEBUG, "set fname:%s", new_fd->fname);
+              syslog(LOG_DEBUG, "open:set fname:%s", new_fd->fname);
             } else {
               fprintf(stderr, "Cannot parse trace log(@open, fname1):%s\n", fpath);
               free(tmp);
@@ -96,7 +98,7 @@ int main(int argc, char* argv[]) {
               exit(EXIT_FAILURE);
           }
 
-          syslog(LOG_DEBUG, "current parser pos:%s", pch);
+          syslog(LOG_DEBUG, "open:current parser pos:%s", pch);
           new_fd->fd = atol(pch);
           syslog(LOG_DEBUG, "set fd:%ld", new_fd->fd);
           new_fd->rval = atol(pch);
@@ -109,7 +111,7 @@ int main(int argc, char* argv[]) {
           
           /** add new_fd to proc_node **/
           if (exist_proc_node(new_fd->pid) == FALSE) {
-            syslog(LOG_DEBUG, "new process:%ld", new_fd->pid);
+            syslog(LOG_DEBUG, "open:new process..%ld", new_fd->pid);
             proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
             new_proc->pid = new_fd->pid;
             new_proc->ppid = ppid;
@@ -121,12 +123,13 @@ int main(int argc, char* argv[]) {
             new_proc->trace_tree->lchild = NULL;
             add_proc_node(new_proc->pid, new_proc);
           } else {
-            syslog(LOG_DEBUG, "exist process:%ld", new_fd->pid);
+            syslog(LOG_DEBUG, "open:exist process..%ld", new_fd->pid);
             proc_node *cur_proc = find_proc_node(new_fd->pid);
-            syslog(LOG_DEBUG, "success to find proc_node:%d", cur_proc->pid);
+            syslog(LOG_DEBUG, "open:success to find proc_node:%d", cur_proc->pid);
             trace_node *new_trace = (trace_node*) malloc(sizeof(trace_node));
             new_trace->fd = new_fd->fd;
             new_trace->trace = new_fd;
+            new_trace->trace->offset = 0;
             new_trace->rchild = NULL;
             new_trace->lchild = NULL;
             add_trace_node(new_fd->pid, new_trace);
@@ -134,8 +137,115 @@ int main(int argc, char* argv[]) {
                 "complete to add new trace node into pid %ld, fd %ld",
                 new_fd->pid, new_fd->fd);
           }
-        } else if (strstr(line, "read") != NULL) {
-        } else if (strstr(line, "close") != NULL) {
+        } else if (strstr(line, "read(") != NULL) {
+          syslog(LOG_DEBUG, "enter read parser");
+          char* pch = strtok(line, "()=, ");
+          long int ppid = 0;
+          proc_node* cur_proc;
+          trace_node* cur_trace;
+          int len;
+
+          /** For print byte offset **/
+          FILE* op_fp;
+          char* tmp_fname = NULL;
+          char* tmp_fname_ptr = tmp_fname;
+          int f_size = 0;
+
+          new_fd->pid = atol(pch);
+          pch = strtok(NULL, "()=, ");
+          cur_proc = find_proc_node(new_fd->pid);
+          if (cur_proc == NULL) {
+            fprintf(stderr, "read:Cannot operate reading on non-exist process(%ld)",
+                new_fd->pid);
+            syslog(LOG_WARNING, "read:Cannot operate reading on non-exist process(%ld)",
+                new_fd->pid);
+            free(new_fd);
+            continue;
+          }
+          ppid = atol(pch);
+          syslog(LOG_DEBUG, "read:Set pid:%ld, ppid:%ld", new_fd->pid, ppid);
+
+          pch = strtok(NULL, "()=, ");
+          pch = strtok(NULL, "()=, ");
+          pch = strtok(NULL, "()=, ");
+          new_fd->fd = atol(pch);
+          syslog(LOG_DEBUG, "read:Set fd:%ld", new_fd->fd);
+          cur_trace = find_trace_node(cur_proc->trace_tree, new_fd->fd);
+          if (cur_trace == NULL) {
+            fprintf(stderr, "read:There is not opened fd..(pid:%ld, fd:%ld)\n",
+                new_fd->pid, new_fd->fd);
+            syslog(LOG_WARNING, "read:There is not opened fd..(pid:%ld, fd:%ld)",
+                new_fd->pid, new_fd->fd);
+            free(new_fd);
+            continue;
+          }
+          free(new_fd);
+
+          pch = strtok(NULL, "()=, ");
+          pch = strtok(NULL, "()=, ");
+          len = atol(pch);
+
+          pch = strtok(NULL, "()=, ");
+          cur_trace->trace->rval = atol(pch);
+          syslog(LOG_DEBUG, "read:Set fd:%ld, request read %d, success %ld",
+              cur_trace->trace->fd, len, cur_trace->trace->rval);
+          syslog(LOG_DEBUG, "make tmp dir:%d", mkdir("./tmp", S_IRWXU|S_IRWXG));
+          tmp_fname = (char*) calloc(strlen("tmp") + 
+              strlen(cur_trace->trace->fname) + strlen("_t1"), sizeof(char));
+          tmp_fname_ptr = stpncpy(tmp_fname, "tmp", strlen("tmp"));
+          tmp_fname_ptr = stpncpy(tmp_fname_ptr, 
+             cur_trace->trace->fname, strlen(cur_trace->trace->fname));
+          stpncpy(tmp_fname_ptr, "_t1", strlen("_t1"));
+          op_fp = fopen(tmp_fname, "ar+");
+          while (op_fp == NULL) {
+            syslog(LOG_DEBUG, "read:Cannot create target file:%s", tmp_fname);
+            char* tmp = (char*) malloc(sizeof(char) * strlen(tmp_fname));
+            memcpy(tmp, tmp_fname, sizeof(char) * strlen(tmp_fname));
+            char *p = tmp;
+            for (; *p; p++) {
+              if (*p == '/') {
+                *p = '\0';
+                mkdir(tmp, S_IRWXU);
+                *p = '/';
+              }
+            }
+            op_fp = fopen(tmp_fname, "ar+");
+          }
+          syslog(LOG_DEBUG, "read:Open File by %s", tmp_fname);
+          fseek(op_fp, 0L, SEEK_END);
+          f_size = ftell(op_fp);
+
+          syslog(LOG_DEBUG, "read:Rollback to current fd(%ld)'s offset:%ld",
+              cur_trace->trace->fd, cur_trace->trace->offset);
+          fseek(op_fp, cur_trace->trace->offset, SEEK_SET);
+          if (f_size > cur_trace->trace->offset ||
+              f_size == cur_trace->trace->offset) {
+            int i = 0;
+            char temp;
+            for (; i < cur_trace->trace->rval; ++i) {
+              temp = fgetc(op_fp);
+              fseek(op_fp, -1, SEEK_CUR);
+              putc('1', op_fp);
+
+            }
+          } else {
+            //TODO(Julie) when current file is smaller..
+            int gap = cur_trace->trace->offset - f_size;
+            int i = 0;
+            fseek(op_fp, 0, SEEK_END);
+            syslog(LOG_DEBUG, 
+                "read:Difference from file size and the current offset:%d", gap);
+            for (; i < cur_trace->trace->rval; i++) {
+              putc(i < gap ? '0' : '1', op_fp);
+            }
+          }
+
+          fclose(op_fp);
+          syslog(LOG_DEBUG, "read:Update fd offset from %ld to %ld",
+              cur_trace->trace->offset, cur_trace->trace->offset+new_fd->rval);
+          cur_trace->trace->offset += cur_trace->trace->rval;
+          
+        } else if (strstr(line, "close(") != NULL) {
           //Find trace_node from proc_node and remove the trace_node
           //from trace_tree in proc_node. If the node is the last, then remove
           //proc_node from proc_list like before.
@@ -146,6 +256,7 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "set pid %ld to new_fd to close", new_fd->pid);
           } else {
             fprintf(stderr, "Cannot parse trace log(@close, pid):%s", pch);
+            free(new_fd);
             exit(EXIT_FAILURE);
           }
 
@@ -177,8 +288,87 @@ int main(int argc, char* argv[]) {
                 new_fd->pid);
             exit(EXIT_FAILURE);
           }
-        } else if (strstr(line, "lseek") != NULL) {
+        } else if (strstr(line, "lseek(") != NULL) {
+          syslog(LOG_DEBUG, "enter lseek parser");
+          char* pch = strtok(line, " ");
+          int op, fd, rval;
+          long int pid, ppid;
+
+          proc_node* cur_proc = NULL;
+          trace_node* cur_trace = NULL;
+          op = fd = rval = 0;
+          pid = ppid = -1;
+          free(new_fd);
+
+          if (pch != NULL) {
+            pid = atol(pch);
+            syslog(LOG_DEBUG, "set pid %ld to new_fd @lseek", pid);
+            pch = strtok(NULL, " ");
+            ppid = atol(pch);
+            syslog(LOG_DEBUG, "set ppid %ld @lseek", ppid);
+          } else {
+            fprintf(stderr, "Cannot parse trace log (@lseek, pid):%s", pch);
+            exit(EXIT_FAILURE);
+          }
+
+          pch = strtok(NULL, "(),= ");
+          pch = strtok(NULL, " (),=");
+          pch = strtok(NULL, "(),= ");
+          fd = atoi(pch);
+          syslog(LOG_DEBUG, "Current parser pos(@lseek1):%s", pch);
+          
+          pch = strtok(NULL, " (),=");
+          pch = strtok(NULL, "(),= ");
+          if (strstr(pch, "END")) {
+            op = -1; // SEEK_END
+          } else if (strstr(pch, "SET")) {
+            op = 1; //SEEK_SET
+          } else if (strstr(pch, "CUR")) {
+            op = 0; //SEEK_CUR
+          }
+          syslog(LOG_DEBUG, "Current parser pos(@lseek2):%s", pch);
+
+          pch = strtok(NULL, "(),= ");
+          rval = atoi(pch);
+          syslog(LOG_DEBUG, "Current parser pos(@lseek3):%s", pch);
+
+          cur_proc = find_proc_node(pid);
+          if (cur_proc == NULL) {
+            syslog(LOG_WARNING, "lseek:Cannot find the process(pid:%ld)", pid);
+            free(new_fd);
+            continue;
+          }
+          cur_trace = find_trace_node(cur_proc->trace_tree, fd);
+          if (cur_trace == NULL) {
+            syslog(LOG_WARNING, "lseek:Cannot find the trace_node(pid:%ld, fd:%d",
+                pid, fd);
+            free(new_fd);
+            continue;
+          }
+          new_fd = cur_trace->trace;
+          if (new_fd == NULL) {
+            syslog(LOG_WARNING, "lseek:Unavailable lseek..(pid:%ld, fd:%d)", pid, fd);
+            fprintf(stderr, "lseek:Unavailable lseek..(pid:%ld, fd:%d)\n", pid, fd);
+            free(new_fd);
+            continue;
+          } else {
+            switch (op) {
+              case -1:
+                new_fd->offset = rval;
+                break;
+              case 0:
+                new_fd->offset += rval;
+                break;
+              case 1:
+                new_fd->offset = 0;
+                break;
+            }
+            syslog(LOG_DEBUG, "Set new offset of pid(%ld), fd(%ld) to %ld",
+                new_fd->pid, new_fd->fd, new_fd->offset);
+          }
         } else if (strstr(line, "dup2") != NULL) {
+          /** copy a trace_node and insert in to trace_tree of the proc_node
+           * from exist trace_node **/
           syslog(LOG_DEBUG, "enter dup2 parser");
           char* pch = strtok(line, " ");
           long int ppid = -1;
@@ -215,6 +405,7 @@ int main(int argc, char* argv[]) {
             new_fd->fd = old;
             if (new != new_fd->rval) {
               syslog(LOG_DEBUG, "Fail dup2(%ld, %ld)", new, old);
+              free(new_fd);
               continue;
             }
             syslog(LOG_DEBUG, "Extract fds from dup2>>old:%ld, new:%ld",
@@ -223,36 +414,39 @@ int main(int argc, char* argv[]) {
             fprintf(stderr, "Cannot parse trace log(@dup2, pid):%s", pch);
             exit(EXIT_FAILURE);
           }
-          //TODO(Julie) Find trace_node from with the pid. If the trace_node
-          // does not exist, find the trace_node from previous node whos pid
-          // is less then the current.
           proc_node* cur_proc = find_proc_node(new_fd->pid);
           trace_node* new_trace = NULL;
           
           if (cur_proc == NULL) {
-            //TODO(Julie) add new proc_node and set new trace_tree.
-            //Also, add new trace_node to trace_tree
+            /** copy trace_node from parent process node and construct
+             * new process node with pid and link it to the parent **/
             proc_node *parent_proc = find_proc_node(ppid);
             if (parent_proc == NULL) {
-              fprintf(stderr, "Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+              syslog(LOG_DEBUG, "dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
-              syslog("Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+              free(new_fd);
+              continue;
+            }
+            trace_node* old_trace = find_trace_node(parent_proc->trace_tree,
+                new_fd->fd);
+            if (old_trace == NULL) {
+              syslog(LOG_DEBUG, "dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
+              free(new_fd);
+              continue;
             }
             proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
             new_proc->pid = new_fd->pid;
             new_proc->ppid = ppid;
             new_proc->next_proc_node = NULL;
-            // set trace by parent trace_node and change the pid and the fd
-            // with copied value
+
             new_trace = (trace_node*) malloc(sizeof(trace_node));
-            memcpy(new_trace, find_trace_node(parent_proc, new_fd->fd),
+            memcpy(new_trace, find_trace_node(parent_proc->trace_tree, new_fd->fd),
                 sizeof(trace_node));
             syslog(LOG_DEBUG,
-                "copy trace_ from (pid:%ld, fd:%ld) to (pid:%ld, fd:%ld)",
-                ppid, new_fd->fd, new_trace->pid, new_trace->fd);
+                "copy trace_ from (pid:%ld, fd:%ld) to (pid:%ld, fd:%d)",
+                ppid, new_fd->fd, new_trace->trace->pid, new_trace->fd);
             new_trace->fd = new_fd->rval;
-            new_trace->pid = new_fd->pid;
             new_fd->fd = new_fd->rval;
             new_trace->trace = new_fd;
             new_trace->rchild = NULL;
@@ -262,22 +456,51 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "Add a new child process (pid:%d) to (pid:%d)",
                 new_proc->ppid, new_proc->pid);
           } else {
+            /** copy trace_node from the current process node **/
             trace_node* old_trace = find_trace_node(cur_proc->trace_tree,
                 new_fd->fd);
             if (old_trace == NULL) {
-              //TODO(Julie) Find trace_node from parent process
-              //It is passed although the parent does not have the trace_node
-              syslog(LOG_DEBUG, "Cannot Find fd(%ld) from parent process(%ld)",
-              syslog(LOG_DEBUG, "Find fd(%ld) from parent process(%ld)",
-                  new_fd->fd, ppid);
+              syslog(LOG_DEBUG, "Start to find the trace node from parent");
+              proc_node* pp_node = find_proc_node(cur_proc->ppid);
+              if (pp_node == NULL) {
+                syslog(LOG_WARNING,
+                    "Cannot find parent proc_node...(ppid:%d, pid:%d, fd:%d)",
+                    cur_proc->ppid, cur_proc->pid, old_trace->fd);
+                free(new_fd);
+                continue;
+              } else {
+                old_trace = find_trace_node(pp_node->trace_tree, new_fd->fd);
+                if (old_trace == NULL) {
+                  syslog(LOG_WARNING,
+                      "Cannot find original trace_node..(ppid:%d, pid:%d, fd:%d)",
+                      pp_node->pid, cur_proc->pid, old_trace->fd);
+                  free(new_fd);
+                  continue;
+                } else {
+                  syslog(LOG_DEBUG, "Find old fd(%ld) from parent process(%ld)",
+                    new_fd->fd, ppid);
+                }
+              }
             } else {
-              //TODO(Julie) copy trace_node from parent to child
-              syslog(LOG_DEBUG, "Copy trace_node(%ld) to trace_node(%ld)",
-                  new_fd->fd, new_fd->rval);
+              syslog(LOG_DEBUG, "Start copy trace node");
+              new_trace = (trace_node*) malloc(sizeof(trace_node));
+              memcpy(new_trace, old_trace, sizeof(trace_node));
+              syslog(LOG_DEBUG,
+                "copy trace_ from (pid:%ld, fd:%d) to (pid:%ld, fd:%ld)",
+                old_trace->trace->pid, old_trace->fd, new_trace->trace->pid, new_fd->rval);
+              new_trace->fd = new_fd->rval;
+              new_fd->fd = new_fd->rval;
+              new_trace->trace = new_fd;
+              new_trace->trace->offset = 0;
+              new_trace->rchild = NULL;
+              new_trace->lchild = NULL;
+              add_trace_node(new_trace->trace->pid, new_trace);
             }
           }
-        } else if (strstr(line, "dup") != NULL) {
-        } else if (strstr(line, "fcntl") != NULL) {
+        } else if (strstr(line, "dup(") != NULL) {
+        } else if (strstr(line, "fcntl(") != NULL) {
+          //TODO(Julie) Do this with the first priority.
+          //Consider dup fd and so on..
         }
       }
       l_pos = 0;

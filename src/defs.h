@@ -26,6 +26,7 @@ struct _trace {
   long fd;
   char* fname;
   long rval;
+  long int offset;
 };
 
 struct _trace_node {
@@ -70,5 +71,9 @@ trace_node* find_trace_node(trace_node* trace_tree, int fd);
 
 // Remove trace_node from trace_tree in proc_node and return pid
 int remove_trace_node(long int pid, long int fd);
+
+/** for manipulate string **/
+// Replace char s1 to s2 in src string
+void char_replace(char s1, char s2, const char* src, char* dest);
 
 #endif  //  __DEFS_H__

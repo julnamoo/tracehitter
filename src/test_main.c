@@ -1,5 +1,7 @@
 // Copyright (c) 2012 Julie Kim (julie114.kim@gmail.com)
 // CUnit Test code for tracehitter
+#include <string.h>
+
 #include "CUnit/Basic.h"
 #include "CUnit/Console.h"
 #include "CUnit/Automated.h"
@@ -69,6 +71,16 @@ void test_add_trace_node(void) {
 
 }
 
+void test_char_replace(void) {
+  char s1 = '/';
+  char s2 = '_';
+  char* src = "/usr/lib/test/file";
+  char* dest = (char*) malloc(sizeof(char) * strlen(src));
+  char* ans = "_usr_lib_test_file";
+  char_replace(s1, s2, src, dest);
+  CU_ASSERT_STRING_EQUAL(dest, ans);
+}
+
 int main() {
   CU_pSuite pSuite = NULL;
 
@@ -83,12 +95,14 @@ int main() {
   }
   
   /* add the tests to the suite */
-  if ((NULL == CU_add_test(pSuite, "successful_exist_proc_node",
+  /* if ((NULL == CU_add_test(pSuite, "successful_exist_proc_node",
           test_exist_proc_node)) ||
       (NULL == CU_add_test(pSuite, "successful_add_proc_node",
                            test_add_proc_node)) ||
       (NULL == CU_add_test(pSuite, "successful_add_trace_node",
-                           test_add_trace_node)))
+                           test_add_trace_node)) || */
+  if((NULL == CU_add_test(pSuite, "successful_char_replace",
+                           test_char_replace)))
   {
     CU_cleanup_registry();
     return CU_get_error();
