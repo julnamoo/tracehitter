@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <sys/stat.h>
 
 #include "defs.h"
 
@@ -77,8 +78,8 @@ int main(int argc, char* argv[]) {
             char* tmp = (char*) malloc(sizeof(char) * len);
             memcpy(tmp, pch, sizeof(char) * len);
             /** prevent from losing rval **/
-            pch = strtok(NULL, "=");
-            pch = strtok(NULL, "=");
+            pch = strtok(NULL, " =");
+            pch = strtok(NULL, " =");
 
             char* fpath = strtok(tmp, "\"");
             fpath = strtok(NULL, "\"");
@@ -147,6 +148,7 @@ int main(int argc, char* argv[]) {
           /** For print byte offset **/
           FILE* op_fp;
           char* tmp_fname = NULL;
+          char* tmp_fname_ptr = tmp_fname;
           int f_size = 0;
 
           new_fd->pid = atol(pch);
@@ -187,13 +189,29 @@ int main(int argc, char* argv[]) {
           cur_trace->trace->rval = atol(pch);
           syslog(LOG_DEBUG, "read:Set fd:%ld, request read %d, success %ld",
               cur_trace->trace->fd, len, cur_trace->trace->rval);
-          //TODO(Julie) Print 1 from the current offset to rval
-          tmp_fname = (char*) malloc(sizeof(char) * strlen(cur_trace->trace->fname)
-              + strlen("_t1"));
-          char_replace('/', '_', cur_trace->trace->fname, tmp_fname);
-          strcat(tmp_fname, "_t1");
+          syslog(LOG_DEBUG, "make tmp dir:%d", mkdir("./tmp", S_IRWXU|S_IRWXG));
+          tmp_fname = (char*) calloc(strlen("tmp") + 
+              strlen(cur_trace->trace->fname) + strlen("_t1"), sizeof(char));
+          tmp_fname_ptr = stpncpy(tmp_fname, "tmp", strlen("tmp"));
+          tmp_fname_ptr = stpncpy(tmp_fname_ptr, 
+             cur_trace->trace->fname, strlen(cur_trace->trace->fname));
+          stpncpy(tmp_fname_ptr, "_t1", strlen("_t1"));
+          op_fp = fopen(tmp_fname, "ar+");
+          while (op_fp == NULL) {
+            syslog(LOG_DEBUG, "read:Cannot create target file:%s", tmp_fname);
+            char* tmp = (char*) malloc(sizeof(char) * strlen(tmp_fname));
+            memcpy(tmp, tmp_fname, sizeof(char) * strlen(tmp_fname));
+            char *p = tmp;
+            for (; *p; p++) {
+              if (*p == '/') {
+                *p = '\0';
+                mkdir(tmp, S_IRWXU);
+                *p = '/';
+              }
+            }
+            op_fp = fopen(tmp_fname, "ar+");
+          }
           syslog(LOG_DEBUG, "read:Open File by %s", tmp_fname);
-          op_fp = fopen(tmp_fname, "w");
           fseek(op_fp, 0L, SEEK_END);
           f_size = ftell(op_fp);
 
@@ -203,11 +221,23 @@ int main(int argc, char* argv[]) {
           if (f_size > cur_trace->trace->offset ||
               f_size == cur_trace->trace->offset) {
             int i = 0;
+            char temp;
             for (; i < cur_trace->trace->rval; ++i) {
+              temp = fgetc(op_fp);
+              fseek(op_fp, -1, SEEK_CUR);
               putc('1', op_fp);
+
             }
           } else {
             //TODO(Julie) when current file is smaller..
+            int gap = cur_trace->trace->offset - f_size;
+            int i = 0;
+            fseek(op_fp, 0, SEEK_END);
+            syslog(LOG_DEBUG, 
+                "read:Difference from file size and the current offset:%d", gap);
+            for (; i < cur_trace->trace->rval; i++) {
+              putc(i < gap ? '0' : '1', op_fp);
+            }
           }
 
           fclose(op_fp);
@@ -469,6 +499,8 @@ int main(int argc, char* argv[]) {
           }
         } else if (strstr(line, "dup(") != NULL) {
         } else if (strstr(line, "fcntl(") != NULL) {
+          //TODO(Julie) Do this with the first priority.
+          //Consider dup fd and so on..
         }
       }
       l_pos = 0;
