@@ -64,7 +64,7 @@ int add_trace_node(int pid, trace_node *new_node);
 int exist_trace_node(trace_node *trace_tree, int fd);
 
 // Find parent trace_node from proc_list of pid with fd
-trace_node* find_parent_trace_node(trace_node* trace_tree, int fd);
+trace_node* find_parent_trace_node(trace_node* trace_tree, int fd, trace_node* r_ptr);
 
 // Find trace_node from trace_tree of pid with fd
 trace_node* find_trace_node(trace_node* trace_tree, int fd);

@@ -143,7 +143,7 @@ int add_trace_node(int pid, trace_node *new_node) {
   return tmp_ptr->fd;
 }
 
-trace_node* find_parent_trace_node(trace_node* trace_tree, int fd) {
+trace_node* find_parent_trace_node(trace_node* trace_tree, int fd, trace_node* r_ptr) {
   trace_node* ptr = trace_tree;
   while (ptr != NULL) {
     if (ptr->fd == fd) {
@@ -205,7 +205,7 @@ trace_node* find_trace_node(trace_node* trace_tree, int fd) {
 int remove_trace_node(long int pid, long int fd) {
   syslog(LOG_DEBUG, "enter remove_trace_node with pid %ld, fd %ld", pid, fd);
   proc_node* cur_proc = find_proc_node(pid);
-  trace_node* p_trace;
+  trace_node* p_trace = NULL;
 
   if (cur_proc == NULL) {
     syslog(LOG_WARNING, "This proc(%ld) is not added to proc_list yet", pid);
@@ -213,7 +213,8 @@ int remove_trace_node(long int pid, long int fd) {
   }
   syslog(LOG_DEBUG, "print trace_tree before delete");
   print_trace_tree(cur_proc->trace_tree);
-  p_trace = find_parent_trace_node(cur_proc->trace_tree, fd);
+  //p_trace = find_parent_trace_node(cur_proc->trace_tree, fd);
+  find_parent_trace_node(cur_proc->trace_tree, fd, p_trace);
 
   if (p_trace == NULL) {
     syslog(LOG_WARNING, "This trace(pid:%d, fd:%ld) is from another op",
@@ -260,6 +261,7 @@ int remove_trace_node(long int pid, long int fd) {
    * If it is not leaf node, reorder the tree */
   int f_side = p_trace->rchild->fd == fd ? RIGHT : LEFT; // 1:rchild, 0:lchild
   trace_node* cur_trace = f_side ? p_trace->rchild : p_trace->lchild;
+  syslog(LOG_DEBUG, "Removing trace_node side is %d..(1:RIGHT, 0:LEFT)", f_side);
   /* Reorder trace_tree from non-leaf to leaf */
   trace_node* target_ptr = NULL;
   if (cur_trace->rchild != NULL) {
