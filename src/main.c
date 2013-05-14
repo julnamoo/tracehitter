@@ -10,6 +10,16 @@
 
 #define LINE_MAX 4096*2
 
+void reset_line(FILE* tracef, int* l_pos, char* line, char* ch) {
+  if (line != NULL) {
+    free(line);
+    line = NULL;
+  }
+  *l_pos = 0;
+  line = (char*) calloc(LINE_MAX, sizeof(char));
+  *ch = getc(tracef);
+}
+
 int main(int argc, char* argv[]) {
 
   FILE* tracef;
@@ -51,7 +61,10 @@ int main(int argc, char* argv[]) {
       /** check unfinished or resumed **/
       if (strstr(line, "unfinished") != NULL) {
         syslog(LOG_DEBUG, "enter unfinished..");
+        reset_line(tracef, &l_pos, line, &ch);
       } else if (strstr(line, "resumed") != NULL) {
+        syslog(LOG_DEBUG, "enter resumed..");
+        reset_line(tracef, &l_pos, line, &ch);
       } else {
         trace *new_fd = (trace *) malloc(sizeof(trace));
         new_fd->state = 1;
@@ -70,6 +83,7 @@ int main(int argc, char* argv[]) {
           } else {
             fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
             free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
 
@@ -111,6 +125,7 @@ int main(int argc, char* argv[]) {
           if (new_fd->rval < 0) {
             syslog(LOG_DEBUG, "Fail to open file %s", new_fd->fname);
             free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
           
@@ -142,6 +157,7 @@ int main(int argc, char* argv[]) {
                 "complete to add new trace node into pid %ld, fd %ld",
                 new_fd->pid, new_fd->fd);
           }
+          reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "read(") != NULL) {
           syslog(LOG_DEBUG, "enter read parser");
           char* pch = strtok(line, "()=, ");
@@ -165,6 +181,7 @@ int main(int argc, char* argv[]) {
             syslog(LOG_WARNING, "read:Cannot operate reading on non-exist process(%ld)",
                 new_fd->pid);
             free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
           ppid = atol(pch);
@@ -182,6 +199,7 @@ int main(int argc, char* argv[]) {
             syslog(LOG_WARNING, "read:There is not opened fd..(pid:%ld, fd:%ld)",
                 new_fd->pid, new_fd->fd);
             free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
           free(new_fd);
@@ -248,6 +266,7 @@ int main(int argc, char* argv[]) {
           syslog(LOG_DEBUG, "read:Update fd offset from %ld to %ld",
               cur_trace->trace->offset, cur_trace->trace->offset+new_fd->rval);
           cur_trace->trace->offset += cur_trace->trace->rval;
+          reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "close(") != NULL) {
           //Find trace_node from proc_node and remove the trace_node
           //from trace_tree in proc_node. If the node is the last, then remove
@@ -260,6 +279,7 @@ int main(int argc, char* argv[]) {
           } else {
             fprintf(stderr, "@close:Cannot parse trace log(@close, pid):%s", pch);
             free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
 
@@ -282,15 +302,21 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "@close:set fd for closing:%ld", new_fd->fd);
           } else {
             fprintf(stderr, "@close:Cannot parse trace log(@close, fd):%s", pch);
+            free(new_fd);
+            free(pch);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
 
           /** remove trace_node **/
           if(remove_trace_node(new_fd->pid, new_fd->fd) != new_fd->pid) {
-            fprintf(stderr, "@close:Fail to remove trace_node at %ld(pid)",
+            fprintf(stderr, "@close:Fail to remove trace_node at %ld(pid)\n",
                 new_fd->pid);
+            free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
+          reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "lseek(") != NULL) {
           syslog(LOG_DEBUG, "enter lseek parser");
           char* pch = strtok(line, " ");
@@ -311,7 +337,8 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "set ppid %ld @lseek", ppid);
           } else {
             fprintf(stderr, "Cannot parse trace log (@lseek, pid):%s", pch);
-            exit(EXIT_FAILURE);
+            reset_line(tracef, &l_pos, line, &ch);
+            continue;
           }
 
           pch = strtok(NULL, "(),= ");
@@ -338,21 +365,21 @@ int main(int argc, char* argv[]) {
           cur_proc = find_proc_node(pid);
           if (cur_proc == NULL) {
             syslog(LOG_WARNING, "lseek:Cannot find the process(pid:%ld)", pid);
-            free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
           cur_trace = find_trace_node(cur_proc->trace_tree, fd);
           if (cur_trace == NULL) {
             syslog(LOG_WARNING, "lseek:Cannot find the trace_node(pid:%ld, fd:%d",
                 pid, fd);
-            free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
           new_fd = cur_trace->trace;
           if (new_fd == NULL) {
             syslog(LOG_WARNING, "lseek:Unavailable lseek..(pid:%ld, fd:%d)", pid, fd);
             fprintf(stderr, "lseek:Unavailable lseek..(pid:%ld, fd:%d)\n", pid, fd);
-            free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           } else {
             switch (op) {
@@ -369,6 +396,7 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "Set new offset of pid(%ld), fd(%ld) to %ld",
                 new_fd->pid, new_fd->fd, new_fd->offset);
           }
+          reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "dup2") != NULL) {
           /** copy a trace_node and insert in to trace_tree of the proc_node
            * from exist trace_node **/
@@ -383,7 +411,9 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "find ppid:%ld", ppid);
           } else {
             fprintf(stderr, "Cannot parse trace log(@dup2, pid):%s", pch);
-            exit(EXIT_FAILURE);
+            free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
+            continue;
           }
 
           pch = strtok(NULL, " ");
@@ -409,6 +439,7 @@ int main(int argc, char* argv[]) {
             if (new != new_fd->rval) {
               syslog(LOG_DEBUG, "Fail dup2(%ld, %ld)", new, old);
               free(new_fd);
+              reset_line(tracef, &l_pos, line, &ch);
               continue;
             }
             syslog(LOG_DEBUG, "Extract fds from dup2>>old:%ld, new:%ld",
@@ -416,6 +447,7 @@ int main(int argc, char* argv[]) {
           } else {
             fprintf(stderr, "Cannot parse trace log(@dup2, pid):%s", pch);
             free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
           proc_node* cur_proc = find_proc_node(new_fd->pid);
@@ -429,6 +461,7 @@ int main(int argc, char* argv[]) {
               syslog(LOG_DEBUG, "dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
               free(new_fd);
+              reset_line(tracef, &l_pos, line, &ch);
               continue;
             }
             syslog(LOG_DEBUG, "@dup2:Success to find the parent proc node.(pid:%ld, ppid:%ld)",
@@ -439,6 +472,7 @@ int main(int argc, char* argv[]) {
               syslog(LOG_DEBUG, "@dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
               free(new_fd);
+              reset_line(tracef, &l_pos, line, &ch);
               continue;
             }
             syslog(LOG_DEBUG, "@dup2:Success to find the old trace node(pid%ld, fd:%ld)",
@@ -473,6 +507,7 @@ int main(int argc, char* argv[]) {
                     beause the origin trace_node cannot be found..(ppid:%ld, pid:%ld, fd:%ld)",
                     ppid, new_fd->pid, new_fd->fd);
                 free(new_fd);
+                reset_line(tracef, &l_pos, line, &ch);
                 continue;
               }
               syslog(LOG_DEBUG, "Start to find the trace node from parent");
@@ -482,6 +517,7 @@ int main(int argc, char* argv[]) {
                     "Cannot find parent proc_node...(ppid:%d, pid:%d, fd:%d)",
                     cur_proc->ppid, cur_proc->pid, old_trace->fd);
                 free(new_fd);
+                reset_line(tracef, &l_pos, line, &ch);
                 continue;
               } else {
                 old_trace = find_trace_node(pp_node->trace_tree, new_fd->fd);
@@ -490,6 +526,7 @@ int main(int argc, char* argv[]) {
                       "Cannot find original trace_node..(ppid:%d, pid:%d, fd:%d)",
                       pp_node->pid, cur_proc->pid, old_trace->fd);
                   free(new_fd);
+                  reset_line(tracef, &l_pos, line, &ch);
                   continue;
                 } else {
                   syslog(LOG_DEBUG, "Find old fd(%ld) from parent process(%ld)",
@@ -512,28 +549,23 @@ int main(int argc, char* argv[]) {
               add_trace_node(new_trace->trace->pid, new_trace);
             }
           }
+          reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "dup(") != NULL) {
+          reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "fcntl(") != NULL) {
           //TODO(Julie) Do this with the first priority.
           //Consider dup fd and so on..
+          reset_line(tracef, &l_pos, line, &ch);
+        } else {
+          syslog(LOG_DEBUG, "Unsupported keyword");
+          reset_line(tracef, &l_pos, line, &ch);
         }
       }
-      l_pos = 0;
-      cur_max = LINE_MAX;
-      free(line);
-      line = (char*) calloc(cur_max, sizeof(char));
+    } else {
+      line[l_pos] = ch;
+      l_pos++;
       ch = getc(tracef);
-      continue;
     }
-
-//    if (l_pos == cur_max) {
-//      cur_max *= 2;
-//      line = (char*) realloc(line, cur_max);
-//    }
-
-    line[l_pos] = ch;
-    l_pos++;
-    ch = getc(tracef);
   }
 
   closelog();
