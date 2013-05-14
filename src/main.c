@@ -563,6 +563,14 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  syslog(LOG_DEBUG, "Finish parsing the trace....Go to next step");
+  fprintf(stderr, "Finish parsing the trace....Go to next step\n");
+  char* tmp = (char*) malloc(sizeof(char) *
+      strlen(getcwd(NULL, 0)) + strlen("/tmp"));
+  memcpy(tmp, getcwd(NULL, 0), sizeof(char) * strlen(getcwd(NULL, 0)));
+  strcat(tmp, "/tmp\0");
+  print_granularity(tmp);
+
   closelog();
   exit(EXIT_SUCCESS);
 }
