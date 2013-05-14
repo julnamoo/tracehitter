@@ -259,7 +259,7 @@ int main(int argc, char* argv[]) {
 
           fclose(op_fp);
           syslog(LOG_DEBUG, "read:Update fd offset from %ld to %ld",
-              cur_trace->trace->offset, cur_trace->trace->offset+new_fd->rval);
+              cur_trace->trace->offset, cur_trace->trace->offset + cur_trace->trace->rval);
           cur_trace->trace->offset += cur_trace->trace->rval;
           reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "close(") != NULL) {
