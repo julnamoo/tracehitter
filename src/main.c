@@ -71,7 +71,6 @@ int main(int argc, char* argv[]) {
           }
 
           syslog(LOG_DEBUG, "open:current parser pos:%s", pch);
-          fprintf(stderr, "@open:%s\n", line);
           pch = strtok(NULL, " ");
           pch = strtok(NULL, " ");
           syslog(LOG_DEBUG, "open:get fname from:%s", pch);
