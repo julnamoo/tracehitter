@@ -9,9 +9,18 @@
 #define RIGHT 1
 #define LEFT 0
 
+#define CLL_64 64
+#define CLL_128 128
+#define BLOCK_512 512
+#define PAGE_4K 1024*4
+
+#include <dirent.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 typedef struct _trace trace;
 typedef struct _trace_node trace_node;
@@ -75,5 +84,8 @@ int remove_trace_node(long int pid, long int fd);
 /** for manipulate string **/
 // Replace char s1 to s2 in src string
 void char_replace(char s1, char s2, const char* src, char* dest);
+
+/** Printing granularity **/
+void print_granularity(char* filepath);
 
 #endif  //  __DEFS_H__
