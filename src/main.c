@@ -8,7 +8,7 @@
 
 #include "defs.h"
 
-#define LINE_MAX 4096
+#define LINE_MAX 4096*2
 
 int main(int argc, char* argv[]) {
 
@@ -39,6 +39,7 @@ int main(int argc, char* argv[]) {
   while (ch != EOF) {
     // parse trace line and do proper actions
     if (ch == '\n') {
+      fprintf(stderr, "\t%s\n", line);
       // open : allocate new trace struct and add to struct list
       // and write '0's as much as size of the file into rb_{filename}.txt
       // read : find proper offset in reading file and convert '0' to '1'
@@ -55,6 +56,7 @@ int main(int argc, char* argv[]) {
         new_fd->state = 1;
 
         if (strstr(line, "open(") != NULL) {
+          //TODO(Julie)-urgent
           syslog(LOG_DEBUG, "enter open parser");
           long int ppid;
           char* pch = strtok(line, " ");
@@ -71,6 +73,7 @@ int main(int argc, char* argv[]) {
           }
 
           syslog(LOG_DEBUG, "open:current parser pos:%s", pch);
+          //fprintf(stderr, "@open:%s\n", line);
           pch = strtok(NULL, " ");
           pch = strtok(NULL, " ");
           syslog(LOG_DEBUG, "open:get fname from:%s", pch);
@@ -411,7 +414,8 @@ int main(int argc, char* argv[]) {
                 old, new);
           } else {
             fprintf(stderr, "Cannot parse trace log(@dup2, pid):%s", pch);
-            exit(EXIT_FAILURE);
+            free(new_fd);
+            continue;
           }
           proc_node* cur_proc = find_proc_node(new_fd->pid);
           trace_node* new_trace = NULL;
@@ -426,14 +430,18 @@ int main(int argc, char* argv[]) {
               free(new_fd);
               continue;
             }
+            syslog(LOG_DEBUG, "@dup2:Success to find the parent proc node.(pid:%ld, ppid:%ld)",
+                new_fd->pid, ppid);
             trace_node* old_trace = find_trace_node(parent_proc->trace_tree,
                 new_fd->fd);
             if (old_trace == NULL) {
-              syslog(LOG_DEBUG, "dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
+              syslog(LOG_DEBUG, "@dup2:Unavailable trace value...(ppid:%ld, pid:%ld, fd:%ld)",
                   ppid, new_fd->pid, new_fd->fd);
               free(new_fd);
               continue;
             }
+            syslog(LOG_DEBUG, "@dup2:Success to find the old trace node(pid%ld, fd:%ld)",
+                new_fd->pid, new_fd->fd);
             proc_node *new_proc = (proc_node*) malloc(sizeof(proc_node));
             new_proc->pid = new_fd->pid;
             new_proc->ppid = ppid;
@@ -459,6 +467,13 @@ int main(int argc, char* argv[]) {
             trace_node* old_trace = find_trace_node(cur_proc->trace_tree,
                 new_fd->fd);
             if (old_trace == NULL) {
+              if (ppid == new_fd->pid) {
+                syslog(LOG_DEBUG, "This is the parent process! Copying trace_node is cancled\
+                    beause the origin trace_node cannot be found..(ppid:%ld, pid:%ld, fd:%ld)",
+                    ppid, new_fd->pid, new_fd->fd);
+                free(new_fd);
+                continue;
+              }
               syslog(LOG_DEBUG, "Start to find the trace node from parent");
               proc_node* pp_node = find_proc_node(cur_proc->ppid);
               if (pp_node == NULL) {
@@ -510,10 +525,10 @@ int main(int argc, char* argv[]) {
       continue;
     }
 
-    if (l_pos == cur_max) {
-      cur_max *= 2;
-      line = (char*) realloc(line, cur_max);
-    }
+//    if (l_pos == cur_max) {
+//      cur_max *= 2;
+//      line = (char*) realloc(line, cur_max);
+//    }
 
     line[l_pos] = ch;
     l_pos++;
