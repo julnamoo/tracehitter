@@ -143,6 +143,7 @@ int add_trace_node(int pid, trace_node *new_node) {
   syslog(LOG_DEBUG, "print trace tree");
   print_trace_tree(p_ptr->trace_tree);
   return tmp_ptr->fd;
+  /** End traversal trace_node_tree **/
 }
 
 trace_node* find_parent_trace_node(trace_node* trace_tree, int fd, trace_node* r_ptr) {
