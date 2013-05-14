@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) {
   char* line;
   int l_pos = 0;
   int cur_max = LINE_MAX;
+  int idx_line = 0;
 
   /** open syslog **/
   openlog("trace_hitter", LOG_CONS|LOG_ODELAY|LOG_PID, LOG_USER);
@@ -39,7 +40,7 @@ int main(int argc, char* argv[]) {
   while (ch != EOF) {
     // parse trace line and do proper actions
     if (ch == '\n') {
-      fprintf(stderr, "\t%s\n", line);
+      fprintf(stderr, "\t%d:%s\n", ++idx_line, line);
       // open : allocate new trace struct and add to struct list
       // and write '0's as much as size of the file into rb_{filename}.txt
       // read : find proper offset in reading file and convert '0' to '1'

@@ -97,50 +97,33 @@ int add_trace_node(int pid, trace_node *new_node) {
   trace_node* ttree_ptr = p_ptr->trace_tree;
   if (ttree_ptr == NULL) {
     p_ptr->trace_tree = new_node;
-    syslog(LOG_DEBUG, "Is it really the first trace_node of %d(pid)?", pid);
+    syslog(LOG_DEBUG, "add_trace_node:First trace node of %d", pid);
     p_ptr->trace_tree->rchild = NULL;
     p_ptr->trace_tree->lchild = NULL;
-    syslog(LOG_DEBUG, "print trace tree");
+    syslog(LOG_DEBUG, "add_trace_node:print trace tree");
     print_trace_tree(p_ptr->trace_tree);
     return p_ptr->trace_tree->fd;
   }
-  trace_node* tmp_ptr = ttree_ptr;
-  trace_node* tmp_p_ptr = ttree_ptr;
-  int f_side = 0;
-  if (exist_trace_node(ttree_ptr, new_node->fd) == TRUE) {
-    syslog(LOG_DEBUG, "There is already trace_node with pid:%d and fd:%d.\
-        Please check your trace logs.", pid, new_node->fd);
-    syslog(LOG_DEBUG, "print trace tree");
-    print_trace_tree(ttree_ptr);
-    return -1;
-  }
+  trace_node* ttree_p_ptr = ttree_ptr;
   /** find position of new_node **/
-  syslog(LOG_DEBUG, "Start traversal from fd:%d", tmp_ptr->fd);
-  while (tmp_ptr != NULL) {
-    if (tmp_ptr->fd < new_node->fd) {
-      f_side = RIGHT;
-      tmp_p_ptr = tmp_ptr;
-      tmp_ptr = tmp_ptr->rchild;
-    } else {
-      f_side = LEFT;
-      tmp_p_ptr = tmp_ptr;
-      tmp_ptr = tmp_ptr->lchild;
-    }
+  syslog(LOG_DEBUG, "add_trace_node:Start traversal from fd:%d", ttree_ptr->fd);
+  for(; ttree_ptr != NULL; ttree_p_ptr = ttree_ptr, ttree_ptr = ttree_ptr->rchild) {
     ++depth;
+    if (ttree_ptr->fd == new_node->fd) {
+      syslog(LOG_DEBUG, "add_trace_node:Attemp to insert already exist trace \
+          node...pid:%d, fd:%d(current depth:%d)", pid, new_node->fd, depth);
+      ttree_p_ptr->rchild = new_node;
+      free(ttree_ptr);
+      syslog(LOG_DEBUG, "add_trace_node_node:Update older trace_node to new");
+      return new_node->fd;
+    }
   }
-  tmp_ptr = new_node;
-  tmp_ptr->rchild = NULL;
-  tmp_ptr->lchild = NULL;
-  if (f_side == RIGHT) {
-    tmp_p_ptr->rchild = tmp_ptr;
-  } else {
-    tmp_p_ptr->lchild = tmp_ptr;
-  }
-  syslog(LOG_DEBUG, "new node fd:%d is located in %dth level",
-      tmp_ptr->fd, depth);
-  syslog(LOG_DEBUG, "print trace tree");
+  ttree_p_ptr->rchild = new_node;
+  syslog(LOG_DEBUG, "add_trace_node_node:new node pid:%d, fd:%d is located in %dth level",
+      pid, new_node->fd, depth);
+  syslog(LOG_DEBUG, "add_trace_node_node:print trace tree");
   print_trace_tree(p_ptr->trace_tree);
-  return tmp_ptr->fd;
+  return new_node->fd;
 }
 
 trace_node* find_parent_trace_node(trace_node* trace_tree, int fd, trace_node* r_ptr) {
