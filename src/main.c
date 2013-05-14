@@ -211,12 +211,20 @@ int main(int argc, char* argv[]) {
             syslog(LOG_DEBUG, "read:Cannot create target file:%s", tmp_fname);
             char* tmp = (char*) malloc(sizeof(char) * strlen(tmp_fname));
             memcpy(tmp, tmp_fname, sizeof(char) * strlen(tmp_fname));
+            char* org_p = tmp_fname;
             char *p = tmp;
-            for (; *p; p++) {
+            for (; *p; p++, org_p++) {
               if (*p == '/') {
                 *p = '\0';
                 mkdir(tmp, S_IRWXU);
                 *p = '/';
+              } else if (*p == '!' || *p == '@' || *p == '$' || *p == '&'  ||
+                  *p == '*' || *p == '(' || *p == ')' || *p == '?' || *p == ':'
+                  || *p == '[' || *p == ']' || *p == '"' || *p == '<' || *p == '>'
+                  || *p == '\'' || *p == '`' || *p == '|' || *p == '=' || *p == '{'
+                  || *p == '}' || *p == '\\' || *p == '/' || *p == ',' || *p == ';') {
+                syslog(LOG_DEBUG, "read:Illegal character %c inverted to '_'", *p);
+                *org_p = '_';
               }
             }
             op_fp = fopen(tmp_fname, "ar+");
