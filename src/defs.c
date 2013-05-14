@@ -100,15 +100,19 @@ int add_trace_node(int pid, trace_node *new_node) {
   /** find position of new_node **/
   syslog(LOG_DEBUG, "add_trace_node:Start traversal from fd:%d", ttree_ptr->fd);
   for(; ttree_ptr != NULL; ttree_p_ptr = ttree_ptr, ttree_ptr = ttree_ptr->rchild) {
-    ++depth;
     if (ttree_ptr->fd == new_node->fd) {
-      syslog(LOG_DEBUG, "add_trace_node:Attemp to insert already exist trace \
-          node...pid:%d, fd:%d(current depth:%d)", pid, new_node->fd, depth);
-      ttree_p_ptr->rchild = new_node;
+      if (depth == 0) {
+        syslog(LOG_DEBUG, "add_trace_node:It needs to chante the root..");
+        p_ptr->trace_tree = new_node;
+      } else {
+        syslog(LOG_DEBUG, "add_trace_node:Attempt to insert already exist trace node...pid:%d, fd:%d(current depth:%d)", pid, new_node->fd, depth);
+        ttree_p_ptr->rchild = new_node;
+      }
       free(ttree_ptr);
-      syslog(LOG_DEBUG, "add_trace_node_node:Update older trace_node to new");
+      syslog(LOG_DEBUG, "add_trace_node:Update older trace_node to new");
       return new_node->fd;
     }
+    ++depth;
   }
   ttree_p_ptr->rchild = new_node;
   syslog(LOG_DEBUG, "add_trace_node_node:new node pid:%d, fd:%d is located in %dth level",
@@ -162,18 +166,22 @@ trace_node* find_parent_trace_node(trace_node* trace_tree, int fd, trace_node* r
 
 trace_node* find_trace_node(trace_node* trace_tree, int fd) {
   trace_node* t_ptr = trace_tree;
+  int depth = 0;
   syslog(LOG_DEBUG, "enter find_trace_node with fd:%d", fd);
   if (trace_tree == NULL) {
     syslog(LOG_DEBUG, "find_trace_node:trace_tree is empty. return NULL");
     return NULL;
   }
 
-  for(; t_ptr != NULL; t_ptr = t_ptr->rchild) {
+  syslog(LOG_DEBUG, "find_trace_node:trace tree status");
+  print_trace_tree(trace_tree);
+  for(; t_ptr != NULL; t_ptr = t_ptr->rchild, ++depth) {
     if (t_ptr->fd == fd) {
       syslog(LOG_DEBUG, "find_trace_node:Find trace_node(%ld) in pid %ld",
           t_ptr->trace->fd, t_ptr->trace->pid);
       return t_ptr;
     }
+    syslog(LOG_DEBUG, "find_trace_node:current levle:%d", depth);
   }
   syslog(LOG_DEBUG, "find_trace_node:Cannot find the trace_node(%d) \
       from pid %ld", fd, trace_tree->trace->pid);
@@ -237,4 +245,111 @@ void char_replace(char s1, char s2, const char* src, char* dest) {
       dest[i] = s2;
     }
   }
+}
+
+void print_granularity(char* filepath) {
+  struct stat c_stat;
+  
+  syslog(LOG_DEBUG, "enter print_granularity with %s", filepath);
+  if (stat(filepath, &c_stat) < 0) {
+    syslog(LOG_DEBUG, "Cannot get status of %s", filepath);
+    fprintf(stderr, "Cannot get status of %s\n", filepath);
+    return;
+  } else if (S_ISDIR(c_stat.st_mode)) {
+    syslog(LOG_DEBUG, "print_granularity:This is directory>>%s", filepath);
+    DIR *d_ptr;
+    struct dirent *cur_dirent;
+
+    if ((d_ptr = opendir(filepath)) == NULL) {
+      syslog(LOG_DEBUG, "Cannot open %s..", filepath);
+      fprintf(stderr, "Cannot open %s..\n", filepath);
+      return;
+    }
+
+//    char *cwd = getcwd(NULL, 0);
+//    syslog(LOG_DEBUG, "print_granularity:Old CWD is %s", cwd);
+//    chdir(filepath);
+//    free(cwd);
+//    cwd = getcwd(NULL, 0);
+//    syslog(LOG_DEBUG, "print_granularity:New CWD is %s", cwd);
+//    while ((cur_dirent = readdir(d_ptr)) != NULL) {
+//      if (strcmp(cur_dirent->d_name, ".") == 0
+//          || strcmp(cur_dirent->d_name, "..") == 0)
+//        continue;
+//      syslog(LOG_DEBUG, "print_granularity:current entry is %s",
+//          cur_dirent->d_name);
+//      syslog(LOG_DEBUG, "print_granularity:Next file path is %s/%s",
+//          cwd, cur_dirent->d_name);
+//      strcat(cwd, "/");
+//      strcat(cwd, cur_dirent->d_name);
+//      print_granularity(cwd);
+//    }
+//    closedir(d_ptr);
+//    free(cur_dirent);
+//    free(d_ptr);
+//    free(cwd);
+//  } else {
+//    fprintf(stderr, "%s/%s Footprint total granularity\n", 
+//        getcwd(NULL, 0), filepath);
+//    FILE* t_file = fopen(filepath, "r");
+//    syslog(LOG_DEBUG, "print_granularity:open footprint file %s", filepath);
+//    char tmp;
+//    int flag = 0;
+//    int i = 0;
+//    int total = 0;
+//
+//
+//    while ((tmp = fgetc(t_file)) != EOF) {
+//      ++i;
+//      flag |= atoi(&tmp);
+//      if (i % CLL_64 == 0 && flag > 0) {
+//        total += CLL_64;
+//        flag = 0;
+//      }
+//    }
+//    fprintf(stderr, "%s\t%10d\n", "CLL_64", total);
+//
+//    i = 0;
+//    total = 0;
+//    flag = 0;
+//    fseek(t_file, 0L, SEEK_SET);
+//    while ((tmp = fgetc(t_file)) != EOF) {
+//      ++i;
+//      flag |= atoi(&tmp);
+//      if (i % CLL_128 == 0 && flag > 0) {
+//        total += CLL_128;
+//        flag = 0;
+//      }
+//    }
+//    fprintf(stderr, "%s\t%10d\n", "CLL_128", total);
+//
+//    i = 0;
+//    total = 0;
+//    flag = 0;
+//    fseek(t_file, 0L, SEEK_SET);
+//    while ((tmp = fgetc(t_file)) != EOF) {
+//      ++i;
+//      flag |= atoi(&tmp);
+//      if (i % BLOCK_512 == 0 && flag > 0) {
+//        total += BLOCK_512;
+//        flag = 0;
+//      }
+//    }
+//    fprintf(stderr, "%s\t%10d\n", "BLOCK_512", total);
+//
+//    i = 0;
+//    total = 0;
+//    flag = 0;
+//    fseek(t_file, 0L, SEEK_SET);
+//    while ((tmp = fgetc(t_file)) != EOF) {
+//      ++i;
+//      flag |= atoi(&tmp);
+//      if (i % PAGE_4K == 0 && flag > 0) {
+//        total += PAGE_4K;
+//        flag = 0;
+//      }
+//    }
+//    fprintf(stderr, "%s\t%10d\n", "PAGE_4K", total);
+//    fclose(t_file);
+//  }
 }
