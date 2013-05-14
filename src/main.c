@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
   while (ch != EOF) {
     // parse trace line and do proper actions
     if (ch == '\n') {
-      fprintf(stderr, "\t%d:%s\n", ++idx_line, line);
+      syslog(LOG_DEBUG, "\t%d:%s\n", ++idx_line, line);
       // open : allocate new trace struct and add to struct list
       // and write '0's as much as size of the file into rb_{filename}.txt
       // read : find proper offset in reading file and convert '0' to '1'
@@ -72,63 +72,49 @@ int main(int argc, char* argv[]) {
         if (strstr(line, "open(") != NULL) {
           //TODO(Julie)-urgent
           syslog(LOG_DEBUG, "enter open parser");
+          char* pre_open;
           long int ppid;
-          char* pch = strtok(line, " ");
-          if (pch != NULL) {
-            new_fd->pid = atol(pch);
-            syslog(LOG_DEBUG, "open:set pid:%ld", new_fd->pid);
-            pch = strtok(NULL, " ");
-            ppid = atol(pch);
-            syslog(LOG_DEBUG, "open:catch ppid:%ld", ppid);
-          } else {
+          char* pch = strtok(line, "=");
+          if (pch == NULL) {
             fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
             free(new_fd);
             reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
-
-          syslog(LOG_DEBUG, "open:current parser pos:%s", pch);
-          //fprintf(stderr, "@open:%s\n", line);
-          pch = strtok(NULL, " ");
-          pch = strtok(NULL, " ");
-          syslog(LOG_DEBUG, "open:get fname from:%s", pch);
-          if (pch != NULL) {
-            int len = strlen(pch);
-            char* tmp = (char*) malloc(sizeof(char) * len);
-            memcpy(tmp, pch, sizeof(char) * len);
-            /** prevent from losing rval **/
-            pch = strtok(NULL, " =");
-            pch = strtok(NULL, " =");
-
-            char* fpath = strtok(tmp, "\"");
-            fpath = strtok(NULL, "\"");
-            if (fpath != NULL) {
-              new_fd->fname = fpath;
-              syslog(LOG_DEBUG, "open:set fname:%s", new_fd->fname);
-            } else {
-              fprintf(stderr, "Cannot parse trace log(@open, fname1):%s\n", fpath);
-              free(tmp);
-              free(new_fd);
-              exit(EXIT_FAILURE);
-            }
-          } else {
-              fprintf(stderr, "Cannot parse trace log(@open, fname2):%s\n", pch);
-              free(new_fd);
-              exit(EXIT_FAILURE);
-          }
-
-          syslog(LOG_DEBUG, "open:current parser pos:%s", pch);
-          new_fd->fd = atol(pch);
-          syslog(LOG_DEBUG, "set fd:%ld", new_fd->fd);
-          new_fd->rval = atol(pch);
-          syslog(LOG_DEBUG, "set rval:%ld", new_fd->rval);
-          if (new_fd->rval < 0) {
-            syslog(LOG_DEBUG, "Fail to open file %s", new_fd->fname);
+          int len = strlen(pch);
+          pre_open = (char*) malloc(sizeof(char) * len);
+          memcpy(pre_open, pch, sizeof(char) * len);
+        
+          pch = strtok(NULL, "=");
+          if (pch == NULL) {
+            fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
             free(new_fd);
             reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
-          
+          new_fd->fd = new_fd->rval = atol(pch);
+          syslog(LOG_DEBUG, "open:set rval and fd as %ld", new_fd->rval);
+          if (new_fd->fd < 0) {
+            syslog(LOG_DEBUG, "open:Fail to open fd.");
+            free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
+            continue;
+          }
+
+          pch = strtok(pre_open, " \"");
+          new_fd->pid = atol(pch);
+          syslog(LOG_DEBUG, "open:set pid %ld", new_fd->pid);
+          pch = strtok(NULL, " \"");
+          ppid = atol(pch);
+          syslog(LOG_DEBUG, "open:set ppid %ld", ppid);
+          pch = strtok(NULL, " \"");
+          pch = strtok(NULL, " \"");
+          pch = strtok(NULL, " \"");
+          len = strlen(pch);
+          new_fd->fname = (char*) malloc(sizeof(char) * len);
+          memcpy(new_fd->fname, pch, sizeof(char) * len);
+          syslog(LOG_DEBUG, "open:set fname %s", new_fd->fname);
+
           /** add new_fd to proc_node **/
           if (exist_proc_node(new_fd->pid) == FALSE) {
             syslog(LOG_DEBUG, "open:new process..%ld", new_fd->pid);
@@ -139,6 +125,7 @@ int main(int argc, char* argv[]) {
             new_proc->trace_tree = (trace_node*) malloc(sizeof(trace_node));
             new_proc->trace_tree->fd = new_fd->fd;
             new_proc->trace_tree->trace = new_fd;
+            new_proc->trace_tree->trace->offset = 0;
             new_proc->trace_tree->rchild = NULL;
             new_proc->trace_tree->lchild = NULL;
             add_proc_node(new_proc->pid, new_proc);
@@ -154,7 +141,7 @@ int main(int argc, char* argv[]) {
             new_trace->lchild = NULL;
             add_trace_node(new_fd->pid, new_trace);
             syslog(LOG_DEBUG,
-                "complete to add new trace node into pid %ld, fd %ld",
+                "open:complete to add new trace node into pid %ld, fd %ld",
                 new_fd->pid, new_fd->fd);
           }
           reset_line(tracef, &l_pos, line, &ch);
