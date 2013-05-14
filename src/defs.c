@@ -90,32 +90,34 @@ int add_trace_node(int pid, trace_node *new_node) {
   syslog(LOG_DEBUG, "enter add_trace_node");
   int depth = 0;
   if (exist_proc_node(pid) == FALSE) {
-    syslog(LOG_DEBUG, "There are no process with %d. Returned", pid);
+    syslog(LOG_DEBUG, "@AddTraceNode:There are no process with %d. Returned", pid);
     return -1;
   }
   proc_node* p_ptr = find_proc_node(pid);
   trace_node* ttree_ptr = p_ptr->trace_tree;
   if (ttree_ptr == NULL) {
     p_ptr->trace_tree = new_node;
-    syslog(LOG_DEBUG, "Is it really the first trace_node of %d(pid)?", pid);
+    syslog(LOG_DEBUG, "@AddTraceNode:Build new trace_tree for %d", pid);
     p_ptr->trace_tree->rchild = NULL;
     p_ptr->trace_tree->lchild = NULL;
-    syslog(LOG_DEBUG, "print trace tree");
+    syslog(LOG_DEBUG, "@AddTraceNode:print trace tree");
     print_trace_tree(p_ptr->trace_tree);
     return p_ptr->trace_tree->fd;
   }
-  trace_node* tmp_ptr = ttree_ptr;
-  trace_node* tmp_p_ptr = ttree_ptr;
+  trace_node* tmp_ptr = ttree_ptr;  /** current **/
+  trace_node* tmp_p_ptr = ttree_ptr;  /** for parent **/ 
   int f_side = 0;
   if (exist_trace_node(ttree_ptr, new_node->fd) == TRUE) {
-    syslog(LOG_DEBUG, "There is already trace_node with pid:%d and fd:%d.\
-        Please check your trace logs.", pid, new_node->fd);
-    syslog(LOG_DEBUG, "print trace tree");
+    fprintf(stderr, "@AddTraceNode:There is an attempt to add new trace_node \
+        whose fd(%d) and pid(%d) is already exist..\n", new_node->fd, pid);
+    syslog(LOG_DEBUG, "@AddTraceNode:There is an attempt to add new trace_node \
+        whose fd(%d) and pid(%d) is already exist..\n", new_node->fd, pid);
+    syslog(LOG_DEBUG, "@AddTraceNode:print trace tree");
     print_trace_tree(ttree_ptr);
-    return -1;
+    //return -1;
   }
   /** find position of new_node **/
-  syslog(LOG_DEBUG, "Start traversal from fd:%d", tmp_ptr->fd);
+  syslog(LOG_DEBUG, "@AddTraceNode:Start traversal from fd:%d", tmp_ptr->fd);
   while (tmp_ptr != NULL) {
     if (tmp_ptr->fd < new_node->fd) {
       f_side = RIGHT;
