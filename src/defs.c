@@ -266,90 +266,88 @@ void print_granularity(char* filepath) {
       return;
     }
 
-//    char *cwd = getcwd(NULL, 0);
-//    syslog(LOG_DEBUG, "print_granularity:Old CWD is %s", cwd);
-//    chdir(filepath);
-//    free(cwd);
-//    cwd = getcwd(NULL, 0);
-//    syslog(LOG_DEBUG, "print_granularity:New CWD is %s", cwd);
-//    while ((cur_dirent = readdir(d_ptr)) != NULL) {
-//      if (strcmp(cur_dirent->d_name, ".") == 0
-//          || strcmp(cur_dirent->d_name, "..") == 0)
-//        continue;
-//      syslog(LOG_DEBUG, "print_granularity:current entry is %s",
-//          cur_dirent->d_name);
-//      syslog(LOG_DEBUG, "print_granularity:Next file path is %s/%s",
-//          cwd, cur_dirent->d_name);
-//      strcat(cwd, "/");
-//      strcat(cwd, cur_dirent->d_name);
-//      print_granularity(cwd);
-//    }
-//    closedir(d_ptr);
-//    free(cur_dirent);
-//    free(d_ptr);
-//    free(cwd);
-//  } else {
-//    fprintf(stderr, "%s/%s Footprint total granularity\n", 
-//        getcwd(NULL, 0), filepath);
-//    FILE* t_file = fopen(filepath, "r");
-//    syslog(LOG_DEBUG, "print_granularity:open footprint file %s", filepath);
-//    char tmp;
-//    int flag = 0;
-//    int i = 0;
-//    int total = 0;
-//
-//
-//    while ((tmp = fgetc(t_file)) != EOF) {
-//      ++i;
-//      flag |= atoi(&tmp);
-//      if (i % CLL_64 == 0 && flag > 0) {
-//        total += CLL_64;
-//        flag = 0;
-//      }
-//    }
-//    fprintf(stderr, "%s\t%10d\n", "CLL_64", total);
-//
-//    i = 0;
-//    total = 0;
-//    flag = 0;
-//    fseek(t_file, 0L, SEEK_SET);
-//    while ((tmp = fgetc(t_file)) != EOF) {
-//      ++i;
-//      flag |= atoi(&tmp);
-//      if (i % CLL_128 == 0 && flag > 0) {
-//        total += CLL_128;
-//        flag = 0;
-//      }
-//    }
-//    fprintf(stderr, "%s\t%10d\n", "CLL_128", total);
-//
-//    i = 0;
-//    total = 0;
-//    flag = 0;
-//    fseek(t_file, 0L, SEEK_SET);
-//    while ((tmp = fgetc(t_file)) != EOF) {
-//      ++i;
-//      flag |= atoi(&tmp);
-//      if (i % BLOCK_512 == 0 && flag > 0) {
-//        total += BLOCK_512;
-//        flag = 0;
-//      }
-//    }
-//    fprintf(stderr, "%s\t%10d\n", "BLOCK_512", total);
-//
-//    i = 0;
-//    total = 0;
-//    flag = 0;
-//    fseek(t_file, 0L, SEEK_SET);
-//    while ((tmp = fgetc(t_file)) != EOF) {
-//      ++i;
-//      flag |= atoi(&tmp);
-//      if (i % PAGE_4K == 0 && flag > 0) {
-//        total += PAGE_4K;
-//        flag = 0;
-//      }
-//    }
-//    fprintf(stderr, "%s\t%10d\n", "PAGE_4K", total);
-//    fclose(t_file);
-//  }
+    char *cwd = getcwd(NULL, 0);
+    syslog(LOG_DEBUG, "print_granularity:Old CWD is %s", cwd);
+    chdir(filepath);
+    free(cwd);
+    cwd = getcwd(NULL, 0);
+    syslog(LOG_DEBUG, "print_granularity:New CWD is %s", cwd);
+    while ((cur_dirent = readdir(d_ptr)) != NULL) {
+      if (strcmp(cur_dirent->d_name, ".") == 0
+          || strcmp(cur_dirent->d_name, "..") == 0)
+        continue;
+      syslog(LOG_DEBUG, "print_granularity:current entry is %s",
+          cur_dirent->d_name);
+      char* tmp = (char*) malloc(sizeof(char) *
+          (strlen(cwd) + strlen("/") + strlen(cur_dirent->d_name) + 1));
+      sprintf(tmp, "%s/%s", cwd, cur_dirent->d_name);
+      syslog(LOG_DEBUG, "print_granularity:Next file path is %s", tmp);
+      print_granularity(tmp);
+    }
+    closedir(d_ptr);
+  } else {
+    char *fname = strstr(filepath, "tmp/");
+    fprintf(stderr, "%s Footprint total granularity\n", fname);
+    FILE* t_file = fopen(filepath, "r");
+    syslog(LOG_DEBUG, "print_granularity:open footprint file %s", filepath);
+    char tmp;
+    int flag = 0;
+    int i = 0;
+    int total = 0;
+
+    while ((tmp = fgetc(t_file)) != EOF) {
+      ++i;
+      flag |= atoi(&tmp);
+      if (i % CLL_64 == 0 && flag > 0) {
+        total += CLL_64;
+        flag = 0;
+      }
+    }
+    fprintf(stderr, "%5d\t%10d\n", CLL_64, total);
+
+    i = 0;
+    total = 0;
+    flag = 0;
+    fseek(t_file, 0L, SEEK_SET);
+    while ((tmp = fgetc(t_file)) != EOF) {
+      ++i;
+      flag |= atoi(&tmp);
+      if (i % CLL_128 == 0 && flag > 0) {
+        total += CLL_128;
+        flag = 0;
+      }
+    }
+    fprintf(stderr, "%5d\t%10d\n", CLL_128, total);
+
+    i = 0;
+    total = 0;
+    flag = 0;
+    fseek(t_file, 0L, SEEK_SET);
+    while ((tmp = fgetc(t_file)) != EOF) {
+      ++i;
+      flag |= atoi(&tmp);
+      if (i % BLOCK_512 == 0 && flag > 0) {
+        total += BLOCK_512;
+        flag = 0;
+      }
+    }
+    fprintf(stderr, "%5d\t%10d\n", BLOCK_512, total);
+
+    i = 0;
+    total = 0;
+    flag = 0;
+    fseek(t_file, 0L, SEEK_SET);
+    while ((tmp = fgetc(t_file)) != EOF) {
+      ++i;
+      flag |= atoi(&tmp);
+      if (i % PAGE_4K == 0 && flag > 0) {
+        total += PAGE_4K;
+        flag = 0;
+      }
+    }
+    fprintf(stderr, "%5d\t%10d\n", PAGE_4K, total);
+    fclose(t_file);
+    fprintf(stderr, "\n\n");
+  }
+  syslog(LOG_DEBUG, "print_granularity:Finish printing");
 }
