@@ -199,7 +199,9 @@ int main(int argc, char* argv[]) {
           cur_trace->trace->rval = atol(pch);
           syslog(LOG_DEBUG, "read:Set fd:%ld, request read %d, success %ld",
               cur_trace->trace->fd, len, cur_trace->trace->rval);
-          syslog(LOG_DEBUG, "make tmp dir:%d", mkdir("./tmp", S_IRWXU|S_IRWXG));
+          rm
+          syslog(LOG_DEBUG, "make tmp dir:%d", mkdir("./tmp",
+                S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
           tmp_fname = (char*) calloc(strlen("tmp") + 
               strlen(cur_trace->trace->fname) + strlen("_t1"), sizeof(char));
           tmp_fname_ptr = stpncpy(tmp_fname, "tmp", strlen("tmp"));
@@ -216,7 +218,7 @@ int main(int argc, char* argv[]) {
             for (; *p; p++, org_p++) {
               if (*p == '/') {
                 *p = '\0';
-                mkdir(tmp, S_IRWXU);
+                mkdir(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
                 *p = '/';
               } else if (*p == '!' || *p == '@' || *p == '$' || *p == '&'  ||
                   *p == '*' || *p == '(' || *p == ')' || *p == '?' || *p == ':'
@@ -566,7 +568,7 @@ int main(int argc, char* argv[]) {
   syslog(LOG_DEBUG, "Finish parsing the trace....Go to next step");
   fprintf(stderr, "Finish parsing the trace....Go to next step\n");
   char* tmp = (char*) malloc(sizeof(char) *
-      strlen(getcwd(NULL, 0)) + strlen("/tmp"));
+      strlen(getcwd(NULL, 0) + strlen("/tmp")));
   memcpy(tmp, getcwd(NULL, 0), sizeof(char) * strlen(getcwd(NULL, 0)));
   strcat(tmp, "/tmp\0");
   print_granularity(tmp);
