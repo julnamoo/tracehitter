@@ -199,7 +199,6 @@ int main(int argc, char* argv[]) {
           cur_trace->trace->rval = atol(pch);
           syslog(LOG_DEBUG, "read:Set fd:%ld, request read %d, success %ld",
               cur_trace->trace->fd, len, cur_trace->trace->rval);
-          rm
           syslog(LOG_DEBUG, "make tmp dir:%d", mkdir("./tmp",
                 S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
           tmp_fname = (char*) calloc(strlen("tmp") + 
@@ -242,11 +241,11 @@ int main(int argc, char* argv[]) {
               f_size == cur_trace->trace->offset) {
             int i = 0;
             char temp;
-            for (; i < cur_trace->trace->rval; ++i) {
+            for (; i < len; ++i) {
               temp = fgetc(op_fp);
               fseek(op_fp, -1, SEEK_CUR);
-              putc('1', op_fp);
-
+              //putc('1', op_fp);
+              fprintf(op_fp, "%d", 1);
             }
           } else {
             int gap = cur_trace->trace->offset - f_size;
@@ -254,15 +253,16 @@ int main(int argc, char* argv[]) {
             fseek(op_fp, 0, SEEK_END);
             syslog(LOG_DEBUG, 
                 "read:Difference from file size and the current offset:%d", gap);
-            for (; i < cur_trace->trace->rval; i++) {
-              putc(i < gap ? '0' : '1', op_fp);
+            for (; i < len; i++) {
+              //putc(i < gap ? '0' : '1', op_fp);
+              fprintf(op_fp, "%d", i < gap ? '0' : '1');
             }
           }
 
           fclose(op_fp);
           syslog(LOG_DEBUG, "read:Update fd offset from %ld to %ld",
-              cur_trace->trace->offset, cur_trace->trace->offset + cur_trace->trace->rval);
-          cur_trace->trace->offset += cur_trace->trace->rval;
+              cur_trace->trace->offset, cur_trace->trace->offset + len);
+          cur_trace->trace->offset += len;
           reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "close(") != NULL) {
           //Find trace_node from proc_node and remove the trace_node
