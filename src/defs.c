@@ -286,68 +286,107 @@ void print_granularity(char* filepath) {
     }
     closedir(d_ptr);
   } else {
-    char *fname = strstr(filepath, "tmp/");
-    fprintf(stderr, "%s Footprint total granularity\n", fname);
+    char *fname = strstr(filepath, "tmp");
+    fname = strstr(fname, "/");
+    fprintf(stdout, "%s\n", fname);
     FILE* t_file = fopen(filepath, "r");
+    FILE* o_file = fopen(fname, "r"); // For the coarest granularity
     syslog(LOG_DEBUG, "print_granularity:open footprint file %s", filepath);
-    char tmp;
+    //char *tmp;
     int flag = 0;
     int i = 0;
     int total = 0;
+    int g_total = 0;
 
-    while ((tmp = fgetc(t_file)) != EOF) {
+    if (t_file == NULL) {
+      fprintf(stderr, "cannot opn the trace file..%s", fname);
+      fprintf(stdout, "cannot opn the trace file..%s", fname);
+      return;
+    }
+
+    /** For 64 bytes and 1 bytes (Pure amount of read request) **/
+    while (!feof(t_file)) {
+      int tmp;
+      //fscanf(t_file, "%c", tmp);
+      fscanf(t_file, "%d", &tmp);
       ++i;
-      flag |= atoi(&tmp);
+      //flag += atoi(tmp);
+      flag += tmp;
       if (i % CLL_64 == 0 && flag > 0) {
-        total += CLL_64;
+        g_total += CLL_64;
+        total += flag;
         flag = 0;
       }
     }
-    fprintf(stderr, "%5d\t%10d\n", CLL_64, total);
+    fprintf(stdout, "%5d\t%10d\n", 1, total);
+    fprintf(stdout, "%5d\t%10d\n", CLL_64, g_total);
 
+    /** For 128 bytes **/
     i = 0;
-    total = 0;
+    g_total = 0;
     flag = 0;
-    fseek(t_file, 0L, SEEK_SET);
-    while ((tmp = fgetc(t_file)) != EOF) {
+    rewind(t_file);
+    while (!feof(t_file)) {
+      int tmp;
+      fscanf(t_file, "%d", &tmp);
       ++i;
-      flag |= atoi(&tmp);
+      flag += tmp;
       if (i % CLL_128 == 0 && flag > 0) {
-        total += CLL_128;
+        g_total += CLL_128;
+        total += flag;
         flag = 0;
       }
     }
-    fprintf(stderr, "%5d\t%10d\n", CLL_128, total);
+    fprintf(stdout, "%5d\t%10d\n", CLL_128, g_total);
 
+    /** For 512 Bytes **/
     i = 0;
-    total = 0;
+    g_total = 0;
     flag = 0;
-    fseek(t_file, 0L, SEEK_SET);
-    while ((tmp = fgetc(t_file)) != EOF) {
+    rewind(t_file);
+    while (!feof(t_file)) {
+      int tmp;
+      fscanf(t_file, "%d", &tmp);
       ++i;
-      flag |= atoi(&tmp);
+      flag += tmp;
       if (i % BLOCK_512 == 0 && flag > 0) {
-        total += BLOCK_512;
+        g_total += BLOCK_512;
         flag = 0;
       }
     }
-    fprintf(stderr, "%5d\t%10d\n", BLOCK_512, total);
+    fprintf(stdout, "%5d\t%10d\n", BLOCK_512, g_total);
 
+    /** For 4K Bytes **/
     i = 0;
-    total = 0;
+    g_total = 0;
     flag = 0;
-    fseek(t_file, 0L, SEEK_SET);
-    while ((tmp = fgetc(t_file)) != EOF) {
+    rewind(t_file);
+    while (!feof(t_file)) {
+      int tmp;
+      fscanf(t_file, "%d", &tmp);
       ++i;
-      flag |= atoi(&tmp);
+      flag += tmp;
       if (i % PAGE_4K == 0 && flag > 0) {
-        total += PAGE_4K;
+        g_total += PAGE_4K;
         flag = 0;
       }
     }
-    fprintf(stderr, "%5d\t%10d\n", PAGE_4K, total);
+    fprintf(stdout, "%5d\t%10d\n", PAGE_4K, g_total);
     fclose(t_file);
-    fprintf(stderr, "\n\n");
+
+    /** For whole file **/
+    if (o_file == NULL) {
+      g_total = total;
+    } else {
+      g_total = ftell(o_file);
+      fclose(o_file);
+    }
+    fprintf(stdout, "%5d\t%10d\n", g_total, g_total);
+    fprintf(stdout, "\nOrigin File size: %dbytes, Requested: %dbytes\n", g_total, total);
+
+    fprintf(stdout, "\n\n");
   }
+  
+
   syslog(LOG_DEBUG, "print_granularity:Finish printing");
 }
