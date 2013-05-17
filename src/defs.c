@@ -181,7 +181,7 @@ trace_node* find_trace_node(trace_node* trace_tree, int fd) {
           t_ptr->trace->fd, t_ptr->trace->pid);
       return t_ptr;
     }
-    syslog(LOG_DEBUG, "find_trace_node:current levle:%d", depth);
+    syslog(LOG_DEBUG, "find_trace_node:current level:%d", depth);
   }
   syslog(LOG_DEBUG, "find_trace_node:Cannot find the trace_node(%d) \
       from pid %ld", fd, trace_tree->trace->pid);
@@ -321,6 +321,8 @@ void print_granularity(char* filepath) {
     }
     fprintf(stdout, "%5d\t%10d\n", 1, total);
     fprintf(stdout, "%5d\t%10d\n", CLL_64, g_total);
+    p_total[0] += total;
+    p_total[1] += g_total;
 
     /** For 128 bytes **/
     i = 1;
@@ -340,6 +342,7 @@ void print_granularity(char* filepath) {
       g_total += CLL_128;
     }
     fprintf(stdout, "%5d\t%10d\n", CLL_128, g_total);
+    p_total[2] += g_total;
 
     /** For 512 Bytes **/
     i = 1;
@@ -359,6 +362,7 @@ void print_granularity(char* filepath) {
       g_total += BLOCK_512;
     }
     fprintf(stdout, "%5d\t%10d\n", BLOCK_512, g_total);
+    p_total[3] += g_total;
 
     /** For 4K Bytes **/
     i = 1;
@@ -379,6 +383,7 @@ void print_granularity(char* filepath) {
     }
     fprintf(stdout, "%5d\t%10d\n", PAGE_4K, g_total);
     fclose(t_file);
+    p_total[4] += g_total;
 
     /** For whole file **/
     if (o_file == NULL) {
@@ -388,6 +393,7 @@ void print_granularity(char* filepath) {
       fclose(o_file);
     }
     fprintf(stdout, "%5d\t%10d\n", g_total, g_total);
+    p_total[5] += g_total;
     fprintf(stdout, "Origin File size: %dbytes, Requested: %dbytes\n", g_total, total);
 
     fprintf(stdout, "\n\n");
