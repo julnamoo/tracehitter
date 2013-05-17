@@ -72,48 +72,29 @@ int main(int argc, char* argv[]) {
         if (strstr(line, "open(") != NULL) {
           //TODO(Julie)-urgent
           syslog(LOG_DEBUG, "enter open parser");
-          char* pre_open;
-          long int ppid;
-          char* pch = strtok(line, "=");
-          if (pch == NULL) {
-            fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
-            free(new_fd);
-            reset_line(tracef, &l_pos, line, &ch);
-            continue;
-          }
-          int len = strlen(pch);
-          pre_open = (char*) malloc(sizeof(char) * len);
-          memcpy(pre_open, pch, sizeof(char) * len);
-        
-          pch = strtok(NULL, "=");
-          if (pch == NULL) {
-            fprintf(stderr, "Cannot parse trace log(@open, pid):%s\n", pch);
-            free(new_fd);
-            reset_line(tracef, &l_pos, line, &ch);
-            continue;
-          }
-          new_fd->fd = new_fd->rval = atol(pch);
-          syslog(LOG_DEBUG, "open:set rval and fd as %ld", new_fd->rval);
-          if (new_fd->fd < 0) {
-            syslog(LOG_DEBUG, "open:Fail to open fd.");
-            free(new_fd);
-            reset_line(tracef, &l_pos, line, &ch);
-            continue;
-          }
-
-          pch = strtok(pre_open, " \"");
+          char* pch = strtok(line, "()\"=, ");
+          long int ppid = 0;
+          int len = 0;
           new_fd->pid = atol(pch);
-          syslog(LOG_DEBUG, "open:set pid %ld", new_fd->pid);
-          pch = strtok(NULL, " \"");
+          pch = strtok(NULL, "()\"=, ");
           ppid = atol(pch);
-          syslog(LOG_DEBUG, "open:set ppid %ld", ppid);
-          pch = strtok(NULL, " \"");
-          pch = strtok(NULL, " \"");
-          pch = strtok(NULL, " \"");
+          syslog(LOG_DEBUG, "open:set pid %ld, ppid %ld", new_fd->pid, ppid);
+
+          pch = strtok(NULL, "()\"=, ");
+          pch = strtok(NULL, "()\"=, ");
+          pch = strtok(NULL, "()\"=, ");
           len = strlen(pch);
-          new_fd->fname = (char*) malloc(sizeof(char) * len);
-          memcpy(new_fd->fname, pch, sizeof(char) * len);
+          new_fd->fname = (char*) calloc(len + 1, sizeof(char));
+          strncpy(new_fd->fname, pch, len);
           syslog(LOG_DEBUG, "open:set fname %s", new_fd->fname);
+          
+          pch = strtok(NULL, "()\"=, ");
+          pch = strtok(NULL, "()\"=, ");
+          new_fd->fd = atol(pch);
+          syslog(LOG_DEBUG, "open:set fd %ld", new_fd->fd);
+          new_fd->rval = new_fd->fd;
+          new_fd->offset = 0;
+          new_fd->state = 1;
 
           /** add new_fd to proc_node **/
           if (exist_proc_node(new_fd->pid) == FALSE) {
@@ -125,7 +106,6 @@ int main(int argc, char* argv[]) {
             new_proc->trace_tree = (trace_node*) malloc(sizeof(trace_node));
             new_proc->trace_tree->fd = new_fd->fd;
             new_proc->trace_tree->trace = new_fd;
-            new_proc->trace_tree->trace->offset = 0;
             new_proc->trace_tree->rchild = NULL;
             new_proc->trace_tree->lchild = NULL;
             add_proc_node(new_proc->pid, new_proc);
@@ -136,7 +116,6 @@ int main(int argc, char* argv[]) {
             trace_node *new_trace = (trace_node*) malloc(sizeof(trace_node));
             new_trace->fd = new_fd->fd;
             new_trace->trace = new_fd;
-            new_trace->trace->offset = 0;
             new_trace->rchild = NULL;
             new_trace->lchild = NULL;
             add_trace_node(new_fd->pid, new_trace);
@@ -163,7 +142,7 @@ int main(int argc, char* argv[]) {
           pch = strtok(NULL, "()=, ");
           cur_proc = find_proc_node(new_fd->pid);
           if (cur_proc == NULL) {
-            fprintf(stderr, "read:Cannot operate reading on non-exist process(%ld)",
+            fprintf(stderr, "read:Cannot operate reading on non-exist process(%ld)\n",
                 new_fd->pid);
             syslog(LOG_WARNING, "read:Cannot operate reading on non-exist process(%ld)",
                 new_fd->pid);
