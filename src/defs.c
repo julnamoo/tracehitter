@@ -292,9 +292,9 @@ void print_granularity(char* filepath) {
     FILE* t_file = fopen(filepath, "r");
     FILE* o_file = fopen(fname, "r"); // For the coarest granularity
     syslog(LOG_DEBUG, "print_granularity:open footprint file %s", filepath);
-    //char *tmp;
+    char *tmp = (char*) malloc(sizeof(char));
     int flag = 0;
-    int i = 0;
+    int i = 1;
     int total = 0;
     int g_total = 0;
 
@@ -306,70 +306,76 @@ void print_granularity(char* filepath) {
 
     /** For 64 bytes and 1 bytes (Pure amount of read request) **/
     while (!feof(t_file)) {
-      int tmp;
-      //fscanf(t_file, "%c", tmp);
-      fscanf(t_file, "%d", &tmp);
+      fscanf(t_file, "%c", tmp);
       ++i;
-      //flag += atoi(tmp);
-      flag += tmp;
+      flag += atoi(tmp);
       if (i % CLL_64 == 0 && flag > 0) {
         g_total += CLL_64;
         total += flag;
         flag = 0;
       }
     }
+    if (flag > 0) {
+      g_total += CLL_64;
+      total += flag;
+    }
     fprintf(stdout, "%5d\t%10d\n", 1, total);
     fprintf(stdout, "%5d\t%10d\n", CLL_64, g_total);
 
     /** For 128 bytes **/
-    i = 0;
+    i = 1;
     g_total = 0;
     flag = 0;
     rewind(t_file);
     while (!feof(t_file)) {
-      int tmp;
-      fscanf(t_file, "%d", &tmp);
+      fscanf(t_file, "%c", tmp);
       ++i;
-      flag += tmp;
+      flag += atoi(tmp);
       if (i % CLL_128 == 0 && flag > 0) {
         g_total += CLL_128;
-        total += flag;
         flag = 0;
       }
+    }
+    if (flag > 0) {
+      g_total += CLL_128;
     }
     fprintf(stdout, "%5d\t%10d\n", CLL_128, g_total);
 
     /** For 512 Bytes **/
-    i = 0;
+    i = 1;
     g_total = 0;
     flag = 0;
     rewind(t_file);
     while (!feof(t_file)) {
-      int tmp;
-      fscanf(t_file, "%d", &tmp);
+      fscanf(t_file, "%c", tmp);
       ++i;
-      flag += tmp;
+      flag += atoi(tmp);
       if (i % BLOCK_512 == 0 && flag > 0) {
         g_total += BLOCK_512;
         flag = 0;
       }
     }
+    if (flag > 0) {
+      g_total += BLOCK_512;
+    }
     fprintf(stdout, "%5d\t%10d\n", BLOCK_512, g_total);
 
     /** For 4K Bytes **/
-    i = 0;
+    i = 1;
     g_total = 0;
     flag = 0;
     rewind(t_file);
     while (!feof(t_file)) {
-      int tmp;
-      fscanf(t_file, "%d", &tmp);
+      fscanf(t_file, "%c", tmp);
       ++i;
-      flag += tmp;
+      flag += atoi(tmp);
       if (i % PAGE_4K == 0 && flag > 0) {
         g_total += PAGE_4K;
         flag = 0;
       }
+    }
+    if (flag > 0) {
+      g_total += PAGE_4K;
     }
     fprintf(stdout, "%5d\t%10d\n", PAGE_4K, g_total);
     fclose(t_file);
@@ -382,7 +388,7 @@ void print_granularity(char* filepath) {
       fclose(o_file);
     }
     fprintf(stdout, "%5d\t%10d\n", g_total, g_total);
-    fprintf(stdout, "\nOrigin File size: %dbytes, Requested: %dbytes\n", g_total, total);
+    fprintf(stdout, "Origin File size: %dbytes, Requested: %dbytes\n", g_total, total);
 
     fprintf(stdout, "\n\n");
   }
