@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
   while (ch != EOF) {
     // parse trace line and do proper actions
     if (ch == '\n') {
-      syslog(LOG_DEBUG, "\t%d:%s\n", ++idx_line, line);
+      syslog(LOG_DEBUG, "     %d:%s\n", ++idx_line, line);
       // open : allocate new trace struct and add to struct list
       // and write '0's as much as size of the file into rb_{filename}.txt
       // read : find proper offset in reading file and convert '0' to '1'
@@ -228,6 +228,7 @@ int main(int argc, char* argv[]) {
                 *org_p = '_';
               }
             }
+            syslog(LOG_DEBUG, "read:Final fname is %s", tmp_fname);
             op_fp = fopen(tmp_fname, "ar+");
           }
           syslog(LOG_DEBUG, "read:Open File by %s", tmp_fname);
