@@ -72,24 +72,25 @@ int main(int argc, char* argv[]) {
         if (strstr(line, "open(") != NULL) {
           //TODO(Julie)-urgent
           syslog(LOG_DEBUG, "enter open parser");
-          char* pch = strtok(line, "()\"=, ");
+          char* pch = strtok(line, "()\", ");
           long int ppid = 0;
           int len = 0;
           new_fd->pid = atol(pch);
-          pch = strtok(NULL, "()\"=, ");
+          pch = strtok(NULL, "()\", ");
           ppid = atol(pch);
           syslog(LOG_DEBUG, "open:set pid %ld, ppid %ld", new_fd->pid, ppid);
 
-          pch = strtok(NULL, "()\"=, ");
-          pch = strtok(NULL, "()\"=, ");
-          pch = strtok(NULL, "()\"=, ");
+          pch = strtok(NULL, "()\", ");
+          pch = strtok(NULL, "()\", ");
+          pch = strtok(NULL, "()\", ");
           len = strlen(pch);
           new_fd->fname = (char*) calloc(len + 1, sizeof(char));
           strncpy(new_fd->fname, pch, len);
           syslog(LOG_DEBUG, "open:set fname %s", new_fd->fname);
           
-          pch = strtok(NULL, "()\"=, ");
-          pch = strtok(NULL, "()\"=, ");
+          pch = strtok(NULL, "=");
+          pch = strtok(NULL, "= ");
+          syslog(LOG_DEBUG, "open:current parser pos>>%s", pch);
           new_fd->fd = atol(pch);
           syslog(LOG_DEBUG, "open:set fd %ld", new_fd->fd);
           new_fd->rval = new_fd->fd;
@@ -181,7 +182,7 @@ int main(int argc, char* argv[]) {
           syslog(LOG_DEBUG, "make tmp dir:%d", mkdir("./tmp",
                 S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
           tmp_fname = (char*) calloc(strlen("tmp") + 
-              strlen(cur_trace->trace->fname) + strlen("_t1"), sizeof(char));
+              strlen(cur_trace->trace->fname) + strlen("_t1") + 1, sizeof(char));
           tmp_fname_ptr = stpncpy(tmp_fname, "tmp", strlen("tmp"));
           tmp_fname_ptr = stpncpy(tmp_fname_ptr, 
              cur_trace->trace->fname, strlen(cur_trace->trace->fname));
