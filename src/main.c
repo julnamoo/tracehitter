@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
           if (cur_proc == NULL) {
             fprintf(stderr, "read:Cannot operate reading on non-exist process(%ld)\n",
                 new_fd->pid);
-            syslog(LOG_WARNING, "read:Cannot operate reading on non-exist process(%ld)",
+            syslog(LOG_DEBUG, "read:Cannot operate reading on non-exist process(%ld)",
                 new_fd->pid);
             free(new_fd);
             reset_line(tracef, &l_pos, line, &ch);
@@ -163,7 +163,7 @@ int main(int argc, char* argv[]) {
           if (cur_trace == NULL) {
             fprintf(stderr, "read:There is not opened fd..(pid:%ld, fd:%ld)\n",
                 new_fd->pid, new_fd->fd);
-            syslog(LOG_WARNING, "read:There is not opened fd..(pid:%ld, fd:%ld)",
+            syslog(LOG_DEBUG, "read:There is not opened fd..(pid:%ld, fd:%ld)",
                 new_fd->pid, new_fd->fd);
             free(new_fd);
             reset_line(tracef, &l_pos, line, &ch);
@@ -342,20 +342,20 @@ int main(int argc, char* argv[]) {
 
           cur_proc = find_proc_node(pid);
           if (cur_proc == NULL) {
-            syslog(LOG_WARNING, "lseek:Cannot find the process(pid:%ld)", pid);
+            syslog(LOG_DEBUG, "lseek:Cannot find the process(pid:%ld)", pid);
             reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
           cur_trace = find_trace_node(cur_proc->trace_tree, fd);
           if (cur_trace == NULL) {
-            syslog(LOG_WARNING, "lseek:Cannot find the trace_node(pid:%ld, fd:%d",
+            syslog(LOG_DEBUG, "lseek:Cannot find the trace_node(pid:%ld, fd:%d",
                 pid, fd);
             reset_line(tracef, &l_pos, line, &ch);
             continue;
           }
           new_fd = cur_trace->trace;
           if (new_fd == NULL) {
-            syslog(LOG_WARNING, "lseek:Unavailable lseek..(pid:%ld, fd:%d)", pid, fd);
+            syslog(LOG_DEBUG, "lseek:Unavailable lseek..(pid:%ld, fd:%d)", pid, fd);
             fprintf(stderr, "lseek:Unavailable lseek..(pid:%ld, fd:%d)\n", pid, fd);
             reset_line(tracef, &l_pos, line, &ch);
             continue;
@@ -491,7 +491,7 @@ int main(int argc, char* argv[]) {
               syslog(LOG_DEBUG, "Start to find the trace node from parent");
               proc_node* pp_node = find_proc_node(cur_proc->ppid);
               if (pp_node == NULL) {
-                syslog(LOG_WARNING,
+                syslog(LOG_DEBUG,
                     "Cannot find parent proc_node...(ppid:%d, pid:%d, fd:%d)",
                     cur_proc->ppid, cur_proc->pid, old_trace->fd);
                 free(new_fd);
@@ -500,7 +500,7 @@ int main(int argc, char* argv[]) {
               } else {
                 old_trace = find_trace_node(pp_node->trace_tree, new_fd->fd);
                 if (old_trace == NULL) {
-                  syslog(LOG_WARNING,
+                  syslog(LOG_DEBUG,
                       "Cannot find original trace_node..(ppid:%d, pid:%d, fd:%d)",
                       pp_node->pid, cur_proc->pid, old_trace->fd);
                   free(new_fd);
