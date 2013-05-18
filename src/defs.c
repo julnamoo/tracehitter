@@ -325,7 +325,7 @@ void print_granularity(char* filepath) {
     p_total[1] += g_total;
 
     /** For 128 bytes **/
-    i = 1;
+    i = 0;
     g_total = 0;
     flag = 0;
     rewind(t_file);
@@ -345,7 +345,7 @@ void print_granularity(char* filepath) {
     p_total[2] += g_total;
 
     /** For 512 Bytes **/
-    i = 1;
+    i = 0;
     g_total = 0;
     flag = 0;
     rewind(t_file);
@@ -365,7 +365,7 @@ void print_granularity(char* filepath) {
     p_total[3] += g_total;
 
     /** For 4K Bytes **/
-    i = 1;
+    i = 0;
     g_total = 0;
     flag = 0;
     rewind(t_file);

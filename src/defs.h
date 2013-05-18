@@ -12,7 +12,7 @@
 #define CLL_64 64
 #define CLL_128 128
 #define BLOCK_512 512
-#define PAGE_4K 1024*4
+#define PAGE_4K 4096
 
 #include <dirent.h>
 #include <errno.h>
