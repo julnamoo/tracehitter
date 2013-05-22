@@ -294,9 +294,9 @@ void print_granularity(char* filepath) {
     FILE* o_file = fopen(fname, "r"); // For the coarest granularity
     syslog(LOG_DEBUG, "print_granularity:open footprint file %s", filepath);
     char *tmp = (char*) malloc(sizeof(char));
-    int flag = 0;
-    int i = 1;
-    int total = 0;
+    unsigned int flag = 0;
+    unsigned int i = 0;
+    unsigned long long int total = 0;
     unsigned long long int g_total = 0;
 
     if (t_file == NULL) {
@@ -320,8 +320,8 @@ void print_granularity(char* filepath) {
       g_total += CLL_64;
       total += flag;
     }
-    fprintf(stdout, "%5d\t%10d\n", 1, total);
-    fprintf(stdout, "%5d\t%10llu\n", CLL_64, g_total);
+    fprintf(stdout, "%10d\t%10llu\n", 1, total);
+    fprintf(stdout, "%10d\t%10llu\n", CLL_64, g_total);
     p_total[0] += total;
     p_total[1] += g_total;
 
@@ -342,7 +342,7 @@ void print_granularity(char* filepath) {
     if (flag > 0) {
       g_total += CLL_128;
     }
-    fprintf(stdout, "%5d\t%10llu\n", CLL_128, g_total);
+    fprintf(stdout, "%10d\t%10llu\n", CLL_128, g_total);
     p_total[2] += g_total;
 
     /** For 512 Bytes **/
@@ -362,7 +362,7 @@ void print_granularity(char* filepath) {
     if (flag > 0) {
       g_total += BLOCK_512;
     }
-    fprintf(stdout, "%5d\t%10llu\n", BLOCK_512, g_total);
+    fprintf(stdout, "%10d\t%10llu\n", BLOCK_512, g_total);
     p_total[3] += g_total;
 
     /** For 4K Bytes **/
@@ -382,7 +382,7 @@ void print_granularity(char* filepath) {
     if (flag > 0) {
       g_total += PAGE_4K;
     }
-    fprintf(stdout, "%5d\t%10llu\n", PAGE_4K, g_total);
+    fprintf(stdout, "%10d\t%10llu\n", PAGE_4K, g_total);
     fclose(t_file);
     p_total[4] += g_total;
 
@@ -394,13 +394,12 @@ void print_granularity(char* filepath) {
       g_total = ftell(o_file);
       fclose(o_file);
     }
-    fprintf(stdout, "%5llu\t%10llu\n", g_total, g_total);
+    fprintf(stdout, "%10llu\t%10llu\n", g_total, g_total);
     p_total[5] += g_total;
-    fprintf(stdout, "Origin File size: %llubytes, Requested: %dbytes\n", g_total, total);
+    fprintf(stdout, "Origin File size: %llubytes, Requested: %llubytes\n", g_total, total);
 
     fprintf(stdout, "\n\n");
   }
   
-
   syslog(LOG_DEBUG, "print_granularity:Finish printing");
 }

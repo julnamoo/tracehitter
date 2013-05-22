@@ -565,12 +565,12 @@ int main(int argc, char* argv[]) {
   strcat(tmp, "/tmp\0");
   print_granularity(tmp);
   fprintf(stdout, "Total requested bytes of all files\n");
-  fprintf(stdout, "%5d\t%10d\n", 1, p_total[0]);
-  fprintf(stdout, "%5d\t%10d\n", CLL_64, p_total[1]);
-  fprintf(stdout, "%5d\t%10d\n", CLL_128, p_total[2]);
-  fprintf(stdout, "%5d\t%10d\n", BLOCK_512, p_total[3]);
-  fprintf(stdout, "%5d\t%10d\n", PAGE_4K, p_total[4]);
-  fprintf(stdout, "%5d\t%10d\n", p_total[5], p_total[5]);
+  fprintf(stdout, "%10d\t%10llu\n", 1, p_total[0]);
+  fprintf(stdout, "%10d\t%10llu\n", CLL_64, p_total[1]);
+  fprintf(stdout, "%10d\t%10llu\n", CLL_128, p_total[2]);
+  fprintf(stdout, "%10d\t%10llu\n", BLOCK_512, p_total[3]);
+  fprintf(stdout, "%10d\t%10llu\n", PAGE_4K, p_total[4]);
+  fprintf(stdout, "%10llu\t%10llu\n", p_total[5], p_total[5]);
 
   closelog();
   exit(EXIT_SUCCESS);

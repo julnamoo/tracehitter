@@ -31,7 +31,7 @@ proc_node* proc_ptr = NULL;
 
 /** global variable to summarize total accessed bytes per units
  * 1/64/128/512/4K/file **/
-int p_total[6] = { 0, 0, 0, 0, 0, 0 };
+unsigned long long int p_total[6] = { 0, 0, 0, 0, 0, 0 };
 
 struct _trace {
   int state; // 0:unfinished, 1:finished
