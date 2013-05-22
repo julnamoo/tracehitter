@@ -228,25 +228,29 @@ int main(int argc, char* argv[]) {
               cur_trace->trace->fd, cur_trace->trace->offset);
           syslog(LOG_DEBUG, "read:Current file size %llu", f_size);
           fseek(op_fp, cur_trace->trace->offset, SEEK_SET);
-          if (f_size > cur_trace->trace->offset ||
-              f_size == cur_trace->trace->offset) {
-            int i = 0;
+          if (f_size > cur_trace->trace->offset) {
+            int i = 1;
             char temp;
-            for (; i < len; ++i) {
-              temp = fgetc(op_fp);
-              fseek(op_fp, -1, SEEK_CUR);
-              //putc('1', op_fp);
-              fprintf(op_fp, "%d", 1);
+            for (; i < cur_trace->trace->rval; ++i) {
+              if (i < f_size) {
+                temp = fgetc(op_fp);
+                if (temp != '1') {
+                  fseek(op_fp, -1, SEEK_CUR);
+                  ftruncate(fileno(op_fp), i);
+                  fprintf(op_fp, "%d", 1);
+                } else {
+                  fprintf(op_fp, "%d", 1);
+                }
+              }
             }
           } else {
             int gap = cur_trace->trace->offset - f_size;
-            int i = 0;
+            int i = 1;
             fseek(op_fp, 0, SEEK_END);
             syslog(LOG_DEBUG, 
                 "read:Difference from file size and the current offset:%d", gap);
-            for (; i < len; i++) {
-              //putc(i < gap ? '0' : '1', op_fp);
-              fprintf(op_fp, "%d", i < gap ? '0' : '1');
+            for (; i < cur_trace->trace->rval; ++i) {
+              fprintf(op_fp, "%d", i < gap ? 0 : 1);
             }
           }
 
