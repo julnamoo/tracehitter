@@ -5,3 +5,5 @@ gcc -shared defs.o -o libtracer.so
 sudo ln -sf `pwd`/libtracer.so /opt/lib/libtracehitter.so
 echo "Compile main"
 gcc -Wall -g -L/opt/lib -ltracehitter main.c -o main
+echo "Remove tmp directory"
+rm -rf tmp/
