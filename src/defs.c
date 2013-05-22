@@ -17,8 +17,8 @@ void print_trace_tree(trace_node* trace_tree) {
     return;
   }
   trace *t_ptr = trace_tree->trace;
-  syslog(LOG_DEBUG, "ptt:pid %ld, fd %ld, fname %s, state %d, rval %ld",
-      t_ptr->pid, t_ptr->fd, t_ptr->fname, t_ptr->state, t_ptr->rval);
+  syslog(LOG_DEBUG, "ptt:pid %ld, fd %ld, fname %s, offset %ld, state %d, rval %ld",
+      t_ptr->pid, t_ptr->fd, t_ptr->fname, t_ptr->offset, t_ptr->state, t_ptr->rval);
   print_trace_tree(trace_tree->rchild);
   //print_trace_tree(trace_tree->lchild);
 }
@@ -290,13 +290,14 @@ void print_granularity(char* filepath) {
     fname = strstr(fname, "/");
     fprintf(stdout, "%s\n", fname);
     FILE* t_file = fopen(filepath, "r");
+    fname[strlen(fname)-3] = '\0';
     FILE* o_file = fopen(fname, "r"); // For the coarest granularity
     syslog(LOG_DEBUG, "print_granularity:open footprint file %s", filepath);
     char *tmp = (char*) malloc(sizeof(char));
     int flag = 0;
     int i = 1;
     int total = 0;
-    int g_total = 0;
+    unsigned long long int g_total = 0;
 
     if (t_file == NULL) {
       fprintf(stderr, "cannot opn the trace file..%s", fname);
@@ -320,7 +321,7 @@ void print_granularity(char* filepath) {
       total += flag;
     }
     fprintf(stdout, "%5d\t%10d\n", 1, total);
-    fprintf(stdout, "%5d\t%10d\n", CLL_64, g_total);
+    fprintf(stdout, "%5d\t%10llu\n", CLL_64, g_total);
     p_total[0] += total;
     p_total[1] += g_total;
 
@@ -341,7 +342,7 @@ void print_granularity(char* filepath) {
     if (flag > 0) {
       g_total += CLL_128;
     }
-    fprintf(stdout, "%5d\t%10d\n", CLL_128, g_total);
+    fprintf(stdout, "%5d\t%10llu\n", CLL_128, g_total);
     p_total[2] += g_total;
 
     /** For 512 Bytes **/
@@ -361,7 +362,7 @@ void print_granularity(char* filepath) {
     if (flag > 0) {
       g_total += BLOCK_512;
     }
-    fprintf(stdout, "%5d\t%10d\n", BLOCK_512, g_total);
+    fprintf(stdout, "%5d\t%10llu\n", BLOCK_512, g_total);
     p_total[3] += g_total;
 
     /** For 4K Bytes **/
@@ -381,20 +382,21 @@ void print_granularity(char* filepath) {
     if (flag > 0) {
       g_total += PAGE_4K;
     }
-    fprintf(stdout, "%5d\t%10d\n", PAGE_4K, g_total);
+    fprintf(stdout, "%5d\t%10llu\n", PAGE_4K, g_total);
     fclose(t_file);
     p_total[4] += g_total;
 
     /** For whole file **/
     if (o_file == NULL) {
+      syslog(LOG_DEBUG, "print_granularity:Cannot open origin file '%s'", fname);
       g_total = total;
     } else {
       g_total = ftell(o_file);
       fclose(o_file);
     }
-    fprintf(stdout, "%5d\t%10d\n", g_total, g_total);
+    fprintf(stdout, "%5llu\t%10llu\n", g_total, g_total);
     p_total[5] += g_total;
-    fprintf(stdout, "Origin File size: %dbytes, Requested: %dbytes\n", g_total, total);
+    fprintf(stdout, "Origin File size: %llubytes, Requested: %dbytes\n", g_total, total);
 
     fprintf(stdout, "\n\n");
   }
