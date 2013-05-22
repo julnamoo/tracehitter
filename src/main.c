@@ -189,7 +189,7 @@ int main(int argc, char* argv[]) {
              cur_trace->trace->fname, strlen(cur_trace->trace->fname));
           stpncpy(tmp_fname_ptr, "_t1", strlen("_t1"));
           o_fp = fopen(cur_trace->trace->fname, "r");
-          syslog(LOG_DEBUG, "read:Attemp to get the real file(%s) size",
+          syslog(LOG_DEBUG, "read:Attempt to get the real file(%s) size",
               cur_trace->trace->fname);
           if (o_fp != NULL) {
             f_size = ftell(o_fp);

@@ -288,11 +288,12 @@ void print_granularity(char* filepath) {
   } else {
     char *fname = strstr(filepath, "tmp");
     fname = strstr(fname, "/");
-    fprintf(stdout, "%s\n", fname);
     FILE* t_file = fopen(filepath, "r");
     fname[strlen(fname)-3] = '\0';
     FILE* o_file = fopen(fname, "r"); // For the coarest granularity
     syslog(LOG_DEBUG, "print_granularity:open footprint file %s", filepath);
+    syslog(LOG_DEBUG, "print_granularity:open origin file %s", fname);
+    fprintf(stdout, "%s\n", filepath);
     char *tmp = (char*) malloc(sizeof(char));
     unsigned int flag = 0;
     unsigned int i = 0;
