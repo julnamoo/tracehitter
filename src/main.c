@@ -135,9 +135,10 @@ int main(int argc, char* argv[]) {
 
           /** For print byte offset **/
           FILE* op_fp;
+          FILE* o_fp;
           char* tmp_fname = NULL;
           char* tmp_fname_ptr = tmp_fname;
-          int f_size = 0;
+          unsigned long long f_size = 0;
 
           new_fd->pid = atol(pch);
           pch = strtok(NULL, "()=, ");
@@ -187,6 +188,14 @@ int main(int argc, char* argv[]) {
           tmp_fname_ptr = stpncpy(tmp_fname_ptr, 
              cur_trace->trace->fname, strlen(cur_trace->trace->fname));
           stpncpy(tmp_fname_ptr, "_t1", strlen("_t1"));
+          o_fp = fopen(cur_trace->trace->fname, "r");
+          syslog(LOG_DEBUG, "read:Attemp to get the real file(%s) size",
+              cur_trace->trace->fname);
+          if (o_fp != NULL) {
+            f_size = ftell(o_fp);
+            syslog(LOG_DEBUG, "read:Origin file size is %llu", f_size);
+            fclose(o_fp);
+          }
           op_fp = fopen(tmp_fname, "ar+");
           while (op_fp == NULL) {
             syslog(LOG_DEBUG, "read:Cannot create target file:%s", tmp_fname);
@@ -217,6 +226,7 @@ int main(int argc, char* argv[]) {
 
           syslog(LOG_DEBUG, "read:Rollback to current fd(%ld)'s offset:%ld",
               cur_trace->trace->fd, cur_trace->trace->offset);
+          syslog(LOG_DEBUG, "read:Current file size %llu", f_size);
           fseek(op_fp, cur_trace->trace->offset, SEEK_SET);
           if (f_size > cur_trace->trace->offset ||
               f_size == cur_trace->trace->offset) {
@@ -240,10 +250,12 @@ int main(int argc, char* argv[]) {
             }
           }
 
-          fclose(op_fp);
           syslog(LOG_DEBUG, "read:Update fd offset from %ld to %ld",
               cur_trace->trace->offset, cur_trace->trace->offset + len);
-          cur_trace->trace->offset += len;
+          cur_trace->trace->offset = cur_trace->trace->offset + len;
+          f_size = ftell(op_fp);
+          fclose(op_fp);
+          syslog(LOG_DEBUG, "read:Complete reading file size %llu", f_size);
           reset_line(tracef, &l_pos, line, &ch);
         } else if (strstr(line, "close(") != NULL) {
           //Find trace_node from proc_node and remove the trace_node
