@@ -61,16 +61,19 @@ int main(int argc, char* argv[]) {
       /** check unfinished or resumed **/
       if (strstr(line, "unfinished") != NULL) {
         syslog(LOG_DEBUG, "enter unfinished..");
+        //TODO(Julie) Build a linked list for unfinished operation.
+        //Add a new structure for them distinguished by pid and ppid.
         reset_line(tracef, &l_pos, line, &ch);
       } else if (strstr(line, "resumed") != NULL) {
         syslog(LOG_DEBUG, "enter resumed..");
+        //TODO(Julie) Find unfinished operation from the list having the same
+        //pid and ppid. Then, do remains.
         reset_line(tracef, &l_pos, line, &ch);
       } else {
         trace *new_fd = (trace *) malloc(sizeof(trace));
         new_fd->state = 1;
 
         if (strstr(line, "open(") != NULL) {
-          //TODO(Julie)-urgent
           syslog(LOG_DEBUG, "enter open parser");
           char* pch = strtok(line, "()\", ");
           long int ppid = 0;
