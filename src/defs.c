@@ -313,7 +313,7 @@ void print_granularity(char* filepath) {
       if (i % CLL_64 == 0 && flag > 0) {
         g_total += CLL_64;
         total += flag;
-        flag = 0;
+        i = flag = 0;
       }
     }
     if (flag > 0) {
@@ -336,7 +336,7 @@ void print_granularity(char* filepath) {
       flag += atoi(tmp);
       if (i % CLL_128 == 0 && flag > 0) {
         g_total += CLL_128;
-        flag = 0;
+        i = flag = 0;
       }
     }
     if (flag > 0) {
@@ -356,7 +356,7 @@ void print_granularity(char* filepath) {
       flag += atoi(tmp);
       if (i % BLOCK_512 == 0 && flag > 0) {
         g_total += BLOCK_512;
-        flag = 0;
+        i = flag = 0;
       }
     }
     if (flag > 0) {
@@ -376,7 +376,7 @@ void print_granularity(char* filepath) {
       flag += atoi(tmp);
       if (i % PAGE_4K == 0 && flag > 0) {
         g_total += PAGE_4K;
-        flag = 0;
+        i = flag = 0;
       }
     }
     if (flag > 0) {
@@ -393,6 +393,8 @@ void print_granularity(char* filepath) {
     } else {
       g_total = ftell(o_file);
       fclose(o_file);
+      if (g_total == 0)
+        g_total = total;
     }
     fprintf(stdout, "%10llu\t%10llu\n", g_total, g_total);
     p_total[5] += g_total;
