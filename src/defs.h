@@ -39,7 +39,8 @@ struct _trace {
   long fd;
   char* fname;
   long rval;
-  long int offset;
+  unsigned long int offset;
+  unsigned long long int mmaped;
 };
 
 struct _trace_node {
