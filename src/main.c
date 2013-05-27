@@ -553,7 +553,45 @@ int main(int argc, char* argv[]) {
           //TODO(Julie) Do this with the first priority.
           //Consider dup fd and so on..
           reset_line(tracef, &l_pos, line, &ch);
-        } else {
+        } else if (strstr(line, "mmap2(") != NULL) {
+          /** As fitst stage, in mmap2 parser prints and add total
+           * footprint length **/
+          syslog(LOG_DEBUG, "enter mmap2 parser");
+          char* pch = strtok(line, "(), ");
+          long int ppid = 0;
+          long long int length = 0;
+          long long int offset = 0;
+          new_fd->pid = atol(pch);
+          pch = strtok(NULL, "(), ");
+          ppid = atol(pch);
+          syslog(LOG_DEBUG, "mmap2:set pid %ld, ppid %ld", new_fd->pid, ppid);
+          pch = strtok(NULL, "(), ");
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap2:current pos %s", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap2:current pos %s", pch);
+          syslog(LOG_DEBUG, "mmap2:set addr from %s", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap2:current pos %s", pch);
+          syslog(LOG_DEBUG, "mmap2:may be read %s bytes", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap2:current pos %s", pch);
+          syslog(LOG_DEBUG, "mmap2:maybe set priority with %s", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap2:current pos %s", pch);
+          syslog(LOG_DEBUG, "mmap2:maybe set flags with %s", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap2:current pos %s", pch);
+          syslog(LOG_DEBUG, "mmap2:maybe current fd is %s", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap2:current pos %s", pch);
+          syslog(LOG_DEBUG, "mmap2:maybe offset is %s", pch);
+          pch = strtok(NULL, "()= ");
+          syslog(LOG_DEBUG, "mmap2:current pos %s", pch);
+          syslog(LOG_DEBUG, "mmap2:maybe final offset is %s", pch);
+
+          reset_line(tracef, &l_pos, line, &ch);
+        }else {
           syslog(LOG_DEBUG, "Unsupported keyword");
           reset_line(tracef, &l_pos, line, &ch);
         }
