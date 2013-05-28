@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
   char* line;
   int l_pos = 0;
   int cur_max = LINE_MAX;
-  int idx_line = 0;
+  long long int idx_line = 0;
 
   /** open syslog **/
   openlog("trace_hitter", LOG_CONS|LOG_ODELAY|LOG_PID, LOG_USER);
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
   while (ch != EOF) {
     // parse trace line and do proper actions
     if (ch == '\n') {
-      syslog(LOG_DEBUG, "     %d:%s\n", ++idx_line, line);
+      syslog(LOG_DEBUG, "     %lld:%s\n", ++idx_line, line);
       // open : allocate new trace struct and add to struct list
       // and write '0's as much as size of the file into rb_{filename}.txt
       // read : find proper offset in reading file and convert '0' to '1'
@@ -591,7 +591,135 @@ int main(int argc, char* argv[]) {
           syslog(LOG_DEBUG, "mmap2:maybe final offset is %s", pch);
 
           reset_line(tracef, &l_pos, line, &ch);
-        }else {
+        } else if (strstr(line, "mmap(") != NULL) {
+          /** As fitst stage, in mmap parser prints and add total
+           * footprint length **/
+          syslog(LOG_DEBUG, "enter mmap parser");
+          char* pch = strtok(line, "(), ");
+          long int ppid = 0;
+          //long long int length = 0;
+          //long long int offset = 0;
+          proc_node* cur_proc;
+          trace_node* cur_trace;
+          FILE* o_fp;
+          char* tmp_fname = NULL;
+          int f_size = 0;
+syslog(LOG_DEBUG, "mmap:2");
+          new_fd->pid = atol(pch);
+          pch = strtok(NULL, "(), ");
+          ppid = atol(pch);
+          syslog(LOG_DEBUG, "mmap:Set pid %ld, ppid %ld", new_fd->pid, ppid);
+          pch = strtok(NULL, "(), ");
+          pch = strtok(NULL, "(), ");
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap:Set addr from %s", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap:Read %s bytes", pch);
+          new_fd->rval = atol(pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap:Set Priority with %s", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap:Set flags with %s", pch);
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap:Current fd is %s", pch);
+          new_fd->fd = atol(pch);
+          if (new_fd->fd == -1) {
+            syslog(LOG_DEBUG, "mmap:Anonymous mmap. return");
+            free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
+            continue;
+          }
+          pch = strtok(NULL, "(), ");
+          syslog(LOG_DEBUG, "mmap:Offset is %s", pch);
+          pch = strtok(NULL, "()= ");
+          syslog(LOG_DEBUG, "mmap:Returned address is %s", pch);
+          cur_proc = find_proc_node(new_fd->pid);
+          if (cur_proc == NULL) {
+            syslog(LOG_DEBUG, "mmap:Cannot find the current proc node %ld",
+                new_fd->pid);
+            free(new_fd);
+            reset_line(tracef, &l_pos, line, &ch);
+            continue;
+          }
+          cur_trace = find_trace_node(cur_proc->trace_tree, new_fd->fd);
+          if (cur_trace == NULL) {
+            syslog(LOG_DEBUG, "mmap:Cannot find the trace node(%ld) from process %ld",
+                new_fd->fd, new_fd->pid);
+          }
+          tmp_fname = (char*) calloc(strlen("tmp") + 
+              strlen(cur_trace->trace->fname) + strlen("_t1") + 1, sizeof(char));
+          sprintf(tmp_fname, "tmp/%s_t1", cur_trace->trace->fname);
+          syslog(LOG_DEBUG, "mmap:Try to create the file %s", tmp_fname);
+          o_fp = fopen(tmp_fname, "ar+");
+          while (o_fp == NULL) {
+            syslog(LOG_DEBUG, "mmap:Cannot create target file:%s", tmp_fname);
+            char* tmp = (char*) malloc(sizeof(char) * strlen(tmp_fname));
+            memcpy(tmp, tmp_fname, sizeof(char) * strlen(tmp_fname));
+            char* org_p = tmp_fname;
+            char *p = tmp;
+            for (; *p; p++, org_p++) {
+              if (*p == '/') {
+                *p = '\0';
+                mkdir(tmp, S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+                *p = '/';
+              } else if (*p == '!' || *p == '@' || *p == '$' || *p == '&'  ||
+                  *p == '*' || *p == '(' || *p == ')' || *p == '?' || *p == ':'
+                  || *p == '[' || *p == ']' || *p == '"' || *p == '<' || *p == '>'
+                  || *p == '\'' || *p == '`' || *p == '|' || *p == '=' || *p == '{'
+                  || *p == '}' || *p == '\\' || *p == '/' || *p == ',' || *p == ';') {
+                syslog(LOG_DEBUG, "mmap:Illegal character %c inverted to '_'", *p);
+                *org_p = '_';
+              }
+            }
+            syslog(LOG_DEBUG, "mmap:Final fname is %s", tmp_fname);
+            o_fp = fopen(tmp_fname, "ar+");
+          }
+          fseek(o_fp, 0L, SEEK_END);
+          f_size = ftell(o_fp);
+
+          syslog(LOG_DEBUG, "mmap:Rollback to current fd(%ld)'s offset:%ld",
+              cur_trace->trace->fd, cur_trace->trace->offset);
+          syslog(LOG_DEBUG, "mmap:Current file size %d", f_size);
+          fseek(o_fp, cur_trace->trace->offset, SEEK_SET);
+          if (f_size > cur_trace->trace->offset) {
+            int i = 1;
+            char temp;
+            for (; i < cur_trace->trace->rval; ++i) {
+              if (i < f_size) {
+                temp = fgetc(o_fp);
+                if (temp != '1') {
+                  fseek(o_fp, -1, SEEK_CUR);
+                  ftruncate(fileno(o_fp), i);
+                  fprintf(o_fp, "%d", 1);
+                } else {
+                  fprintf(o_fp, "%d", 1);
+                }
+              }
+            }
+          } else {
+            int gap = cur_trace->trace->offset - f_size;
+            int i = 1;
+            fseek(o_fp, 0, SEEK_END);
+            syslog(LOG_DEBUG, 
+                "mmap:Difference from file size and the current offset:%d", gap);
+            for (; i < cur_trace->trace->rval; ++i) {
+              fprintf(o_fp, "%d", i < gap ? 0 : 1);
+            }
+          }
+
+          syslog(LOG_DEBUG, "mmap:Update fd offset from %ld to %ld",
+              cur_trace->trace->offset, cur_trace->trace->offset + new_fd->rval);
+          cur_trace->trace->offset = cur_trace->trace->offset + new_fd->rval;
+          f_size = ftell(o_fp);
+          fclose(o_fp);
+          syslog(LOG_DEBUG, "mmap:Update mmaped val from %lld to %lld",
+              cur_trace->trace->mmaped, cur_trace->trace->mmaped + new_fd->rval);
+          cur_trace->trace->mmaped += new_fd->rval;
+          free(new_fd);
+          syslog(LOG_DEBUG, "mmap:Complete reading file size %d", f_size);
+
+          reset_line(tracef, &l_pos, line, &ch);
+        } else {
           syslog(LOG_DEBUG, "Unsupported keyword");
           reset_line(tracef, &l_pos, line, &ch);
         }
